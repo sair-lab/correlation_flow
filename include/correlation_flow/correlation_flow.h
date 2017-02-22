@@ -16,16 +16,15 @@
 //     along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <ros/ros.h>
+#include <image_transport/image_transport.h>
+#include <opencv2/highgui/highgui.hpp>
+#include <cv_bridge/cv_bridge.h>
 
-using namespace std;
-
-int main(int argc, char** argv)
+class CorrelationFlow
 {
-    ros::init(argc, argv, "correlation_flow_node");
-
-    ros::NodeHandle n("~");
-
-    ros::spin();
-
-    return 0;
-}
+public:
+	CorrelationFlow(ros::NodeHandle);
+	void callback(const sensor_msgs::ImageConstPtr&);
+private:
+	ros::NodeHandle nh;
+};
