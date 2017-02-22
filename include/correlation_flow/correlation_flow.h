@@ -55,6 +55,7 @@ private:
     fftwf_plan fft_plan;
 
     float max_response;
+    float lamda;
     ArrayXXf::Index max_index[2];// index of max value
 
 	cv::Mat image;

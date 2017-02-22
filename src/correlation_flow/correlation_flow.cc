@@ -23,6 +23,7 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
 {
 	width = 360;
 	height = 240;
+	lamda = 0.1;
 	ArrayXXf target = ArrayXXf::Zero(width, height);
     target(width/2, height/2) = 1;
     target_fft = fft(target);
@@ -41,7 +42,7 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
 
     sample_fft = fft(sample);
     output = ifft(filter_fft*sample_fft);
-    filter_fft = target_fft/sample_fft;
+    filter_fft = target_fft/(sample_fft + lamda);
     max_response = output.maxCoeff(&(max_index[0]), &(max_index[1]));
 
     timer.toc("callback:");
