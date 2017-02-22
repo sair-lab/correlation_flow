@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(correlation_flow)
 
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -146,16 +148,16 @@ include_directories(
 # add_dependencies(correlation_flow ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-# add_executable(correlation_flow_node src/correlation_flow_node.cpp)
+add_executable(correlation_flow_node src/correlation_flow_node.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(correlation_flow_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(correlation_flow_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(correlation_flow_node
-#   ${catkin_LIBRARIES}
-# )
+target_link_libraries(correlation_flow_node
+  ${catkin_LIBRARIES}
+)
 
 #############
 ## Install ##
