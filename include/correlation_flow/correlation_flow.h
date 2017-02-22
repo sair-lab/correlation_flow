@@ -15,16 +15,25 @@
 //     You should have received a copy of the GNU General Public License
 //     along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifndef CORRELATION_FLOW_H
+#define CORRELATION_FLOW_H
+
 #include <ros/ros.h>
 #include <image_transport/image_transport.h>
 #include <opencv2/highgui/highgui.hpp>
 #include <cv_bridge/cv_bridge.h>
+#include "common/timer.h"
 
 class CorrelationFlow
 {
 public:
+
 	CorrelationFlow(ros::NodeHandle);
+
 	void callback(const sensor_msgs::ImageConstPtr&);
+
 private:
+
 	ros::NodeHandle nh;
 };
+#endif
