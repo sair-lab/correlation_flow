@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+
+    <node pkg="correlation_flow" type="correlation_flow_node" name="correlation_flow_node" output="screen">
+    	<remap from="~/camera/image" to="/camera/rgb/image_color"/>
+  	</node>
+
+</launch>

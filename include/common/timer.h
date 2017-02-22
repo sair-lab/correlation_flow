@@ -26,8 +26,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef LIB_H
-#define LIB_H
+#ifndef TIMER_H
+#define TIMER_H
 #include <stdio.h>
 #include <cstdlib>
 #include <ctime>

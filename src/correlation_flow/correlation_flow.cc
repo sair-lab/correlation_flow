@@ -18,13 +18,53 @@
 #include <ros/ros.h>
 #include "correlation_flow/correlation_flow.h"
 
+
 CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
 {
-
+	width = 360;
+	height = 240;
+	ArrayXXf target = ArrayXXf::Zero(width, height);
+    target(width/2, height/2) = 1;
+    target_fft = fft(target);
+    filter_fft = fft(ArrayXXf::Zero(width, height));
 }
 
-void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr&)
+
+void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
 {
-	
-	ROS_INFO("Callback");
+	timer.tic();
+
+	cv::resize(cv_bridge::toCvShare(msg, "bgr8")->image, image, cv::Size(width, height));
+	cv::cvtColor(image, image, cv::COLOR_BGR2GRAY);
+	image.convertTo(sample_cv, CV_32FC1);
+    sample = Eigen::Map<ArrayXXf>(&sample_cv.at<float>(0,0), width, height)/255.0;
+
+    sample_fft = fft(sample);
+    output = ifft(filter_fft*sample_fft);
+    filter_fft = target_fft/sample_fft;
+    max_response = output.maxCoeff(&(max_index[0]), &(max_index[1]));
+
+    timer.toc("callback:");
+    ROS_WARN("x=%d, y=%d", max_index[0] - width/2,  max_index[1] - height/2);
+}
+
+
+inline ArrayXXcf CorrelationFlow::fft(const ArrayXXf& x)
+{
+    ArrayXXcf xf = ArrayXXcf(width/2+1, height);
+    fft_plan=fftwf_plan_dft_r2c_2d(height, width, (float(*))(x.data()), 
+        (float(*)[2])(xf.data()), FFTW_ESTIMATE); // reverse order for column major
+    fftwf_execute(fft_plan);
+    return xf;
+}
+
+
+inline ArrayXXf CorrelationFlow::ifft(const ArrayXXcf& xf)
+{
+    ArrayXXf x = ArrayXXf(width, height);
+    ArrayXXcf cxf = xf;
+    fft_plan=fftwf_plan_dft_c2r_2d(height, width, (float(*)[2])(cxf.data()),
+        (float(*))(x.data()), FFTW_ESTIMATE);
+    fftwf_execute(fft_plan);
+    return x/x.size();
 }

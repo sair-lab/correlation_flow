@@ -21,12 +21,20 @@
 #include <ros/ros.h>
 #include <image_transport/image_transport.h>
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 #include <cv_bridge/cv_bridge.h>
+#include <Eigen/Dense>
+#include <fftw3.h>
 #include "common/timer.h"
+
+using namespace std;
+using namespace Eigen;
 
 class CorrelationFlow
 {
 public:
+
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
 	CorrelationFlow(ros::NodeHandle);
 
@@ -34,6 +42,31 @@ public:
 
 private:
 
+	inline ArrayXXcf fft(const ArrayXXf&);
+
+    inline ArrayXXf ifft(const ArrayXXcf&);
+
+private:
+
 	ros::NodeHandle nh;
+
+	int width, height;
+
+    fftwf_plan fft_plan;
+
+    float max_response;
+    ArrayXXf::Index max_index[2];// index of max value
+
+	cv::Mat image;
+	cv::Mat sample_cv;
+
+	ArrayXXf  sample;          // sample to be predict
+	ArrayXXcf sample_fft;          // key depth cloud
+	ArrayXXcf filter_fft;          // key depth cloud
+	ArrayXXcf target_fft;         // correlation target
+	ArrayXXf  output;          // correlation output
+
+	Jeffsan::Timer timer;
+
 };
 #endif
