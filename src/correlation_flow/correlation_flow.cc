@@ -24,6 +24,8 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
 	width = 360;
 	height = 240;
 	lamda = 0.1;
+    sigma = 0.2;
+
 	ArrayXXf target = ArrayXXf::Zero(width, height);
     target(width/2, height/2) = 1;
     target_fft = fft(target);
@@ -68,4 +70,43 @@ inline ArrayXXf CorrelationFlow::ifft(const ArrayXXcf& xf)
         (float(*))(x.data()), FFTW_ESTIMATE);
     fftwf_execute(fft_plan);
     return x/x.size();
+}
+
+inline ArrayXXcf CorrelationFlow::gaussian_kernel()
+{
+    unsigned int N = height * width;
+
+    sample_square = sample_fft.square().abs().sum()/N;
+
+    float xx = sample_square;
+
+    float yy = sample_square;
+
+    sample_fft_conj = sample_fft.conjugate();
+    
+    xyf = sample_fft * sample_fft_conj;
+    
+    xy = ifft(xyf);
+
+    xxyy = (xx+yy-2*xy)/N;
+
+    return fft((-1/(sigma*sigma)*xxyy).exp());
+}
+
+
+inline ArrayXXcf CorrelationFlow::gaussian_kernel(const ArrayXXcf& xf)
+{
+    unsigned int N = height * width;
+
+    float xx = xf.square().abs().sum()/N;
+
+    float yy = sample_square;
+    
+    xyf = xf * sample_fft_conj;
+    
+    xy = ifft(xyf);
+
+    xxyy = (xx+yy-2*xy)/N;
+
+    return fft((-1/(sigma*sigma)*xxyy).exp());
 }

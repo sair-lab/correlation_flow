@@ -46,6 +46,10 @@ private:
 
     inline ArrayXXf ifft(const ArrayXXcf&);
 
+    inline ArrayXXcf gaussian_kernel();
+
+    inline ArrayXXcf gaussian_kernel(const ArrayXXcf&);
+
 private:
 
 	ros::NodeHandle nh;
@@ -66,6 +70,13 @@ private:
 	ArrayXXcf filter_fft;          // key depth cloud
 	ArrayXXcf target_fft;         // correlation target
 	ArrayXXf  output;          // correlation output
+
+    float sample_square;
+    float sigma;
+	ArrayXXcf sample_fft_conj;
+	ArrayXXcf xyf;
+	ArrayXXf  xy;
+	ArrayXXf  xxyy;
 
 	Jeffsan::Timer timer;
 
