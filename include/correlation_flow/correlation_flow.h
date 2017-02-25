@@ -36,13 +36,13 @@ public:
 
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-	CorrelationFlow(ros::NodeHandle);
+    CorrelationFlow(ros::NodeHandle);
 
-	void callback(const sensor_msgs::ImageConstPtr&);
+    void callback(const sensor_msgs::ImageConstPtr&);
 
 private:
 
-	inline ArrayXXcf fft(const ArrayXXf&);
+    inline ArrayXXcf fft(const ArrayXXf&);
 
     inline ArrayXXf ifft(const ArrayXXcf&);
 
@@ -52,9 +52,9 @@ private:
 
 private:
 
-	ros::NodeHandle nh;
+    ros::NodeHandle nh;
 
-	int width, height;
+    int width, height;
 
     fftwf_plan fft_plan;
 
@@ -62,23 +62,30 @@ private:
     float lamda;
     ArrayXXf::Index max_index[2];// index of max value
 
-	cv::Mat image;
-	cv::Mat sample_cv;
+    cv::Mat image;
+    cv::Mat sample_cv;
 
-	ArrayXXf  sample;          // sample to be predict
-	ArrayXXcf sample_fft;          // key depth cloud
-	ArrayXXcf filter_fft;          // key depth cloud
-	ArrayXXcf target_fft;         // correlation target
-	ArrayXXf  output;          // correlation output
+    ArrayXXf  sample;          // sample to be predict
+    ArrayXXcf sample_fft;      // key depth cloud
+    ArrayXXcf filter_fft;      // key depth cloud
+    ArrayXXcf target_fft;      // correlation target
+    ArrayXXf  output;          // correlation output
+    
+    ArrayXXf  train;
+    ArrayXXcf train_fft;
+    ArrayXXcf train_fft_conj;
 
-    float sample_square;
+    float train_square;
     float sigma;
-	ArrayXXcf sample_fft_conj;
-	ArrayXXcf xyf;
-	ArrayXXf  xy;
-	ArrayXXf  xxyy;
+    ArrayXXcf kernel;
+    ArrayXXcf sample_fft_conj;
+    ArrayXXcf xyf;
+    ArrayXXf  xy;
+    ArrayXXf  xxyy;
 
-	Jeffsan::Timer timer;
+    bool initialized;
+
+    Jeffsan::Timer timer;
 
 };
 #endif

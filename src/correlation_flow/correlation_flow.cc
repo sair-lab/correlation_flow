@@ -30,6 +30,8 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     target(width/2, height/2) = 1;
     target_fft = fft(target);
     filter_fft = fft(ArrayXXf::Zero(width, height));
+
+    initialized = false;
 }
 
 
@@ -41,11 +43,27 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
 	cv::cvtColor(image, image, cv::COLOR_BGR2GRAY);
 	image.convertTo(sample_cv, CV_32FC1);
     sample = Eigen::Map<ArrayXXf>(&sample_cv.at<float>(0,0), width, height)/255.0;
-
     sample_fft = fft(sample);
-    output = ifft(filter_fft*sample_fft);
-    filter_fft = target_fft/(sample_fft + lamda);
+
+    if (initialized == false)
+    {
+        train_fft = sample_fft;
+        kernel = gaussian_kernel();
+        filter_fft = target_fft/(kernel + lamda);
+
+        initialized =true;
+        return;
+    }
+
+    //motion of current frame
+    kernel = gaussian_kernel(sample_fft);
+    output = ifft(filter_fft*kernel);
     max_response = output.maxCoeff(&(max_index[0]), &(max_index[1]));
+
+    //update filter
+    train_fft = sample_fft;
+    kernel = gaussian_kernel();
+    filter_fft = target_fft/(kernel + lamda);
 
     timer.toc("callback:");
     ROS_WARN("x=%d, y=%d", max_index[0] - width/2,  max_index[1] - height/2);
@@ -76,15 +94,15 @@ inline ArrayXXcf CorrelationFlow::gaussian_kernel()
 {
     unsigned int N = height * width;
 
-    sample_square = sample_fft.square().abs().sum()/N;
+    train_square = train_fft.square().abs().sum()/N;
 
-    float xx = sample_square;
+    float xx = train_square;
 
-    float yy = sample_square;
+    float yy = train_square;
 
-    sample_fft_conj = sample_fft.conjugate();
+    train_fft_conj = train_fft.conjugate();
     
-    xyf = sample_fft * sample_fft_conj;
+    xyf = train_fft * train_fft_conj;
     
     xy = ifft(xyf);
 
@@ -100,9 +118,9 @@ inline ArrayXXcf CorrelationFlow::gaussian_kernel(const ArrayXXcf& xf)
 
     float xx = xf.square().abs().sum()/N;
 
-    float yy = sample_square;
+    float yy = train_square;
     
-    xyf = xf * sample_fft_conj;
+    xyf = xf * train_fft_conj;
     
     xy = ifft(xyf);
 
