@@ -50,6 +50,10 @@ private:
 
     inline ArrayXXcf gaussian_kernel(const ArrayXXcf&);
 
+    inline void rotation_base(const cv::Mat&);
+
+    inline ArrayXXcf rotation_kernel(const ArrayXXf&);
+
 private:
 
     ros::NodeHandle nh;
@@ -84,6 +88,18 @@ private:
     ArrayXXf  xxyy;
 
     bool initialized;
+
+    float max_rotation;
+    float rot_resolution;
+    int target_dim;
+    ArrayXXcf target_rot_fft;
+    ArrayXXcf filter_rot_fft;
+    ArrayXXcf kernel_rot;
+    ArrayXXf  basis;
+    std::vector<ArrayXXf> rot_base;
+    ArrayXXf output_rot;
+    ArrayXXf::Index max_indexR[2];
+    float max_responseR;
 
     Jeffsan::Timer timer;
 

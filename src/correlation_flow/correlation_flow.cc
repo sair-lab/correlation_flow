@@ -31,6 +31,14 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     target_fft = fft(target);
     filter_fft = fft(ArrayXXf::Zero(width, height));
 
+    max_rotation = 10.0;
+    rot_resolution = 1.0;
+    target_dim = 2*int(max_rotation/rot_resolution)+1;
+    ArrayXXf target_rot = ArrayXXf::Zero(target_dim, 1);
+    target_rot(target_dim/2, 1) = 1;
+    target_rot_fft = fft(target_rot);
+    filter_rot_fft = fft(ArrayXXf::Zero(target_dim, 1));
+
     initialized = false;
 }
 
@@ -45,13 +53,18 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     sample = Eigen::Map<ArrayXXf>(&sample_cv.at<float>(0,0), width, height)/255.0;
     sample_fft = fft(sample);
 
+
     if (initialized == false)
     {
         train_fft = sample_fft;
         kernel = gaussian_kernel();
         filter_fft = target_fft/(kernel + lamda);
 
-        initialized =true;
+        rotation_base(sample_cv);
+        kernel_rot = rotation_kernel(sample);
+        filter_rot_fft = target_rot_fft/(kernel_rot + lamda);
+
+        initialized = true;
         return;
     }
 
@@ -60,22 +73,34 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     output = ifft(filter_fft*kernel);
     max_response = output.maxCoeff(&(max_index[0]), &(max_index[1]));
 
+    kernel_rot = rotation_kernel(sample);
+    output_rot = ifft(kernel_rot*filter_rot_fft);
+    max_responseR = output_rot.maxCoeff(&(max_indexR[0]), &(max_indexR[1]));
+
     //update filter
     train_fft = sample_fft;
     kernel = gaussian_kernel();
     filter_fft = target_fft/(kernel + lamda);
 
+    rotation_base(sample_cv);
+    kernel_rot = rotation_kernel(sample);
+    filter_rot_fft = target_rot_fft/(kernel_rot + lamda);
+
     timer.toc("callback:");
-    ROS_WARN("x=%d, y=%d", max_index[0] - width/2,  max_index[1] - height/2);
+    ROS_WARN("x=%d, y=%d\n", int(max_index[0] - width/2), int(max_index[1] - height/2));
+    ROS_WARN("rotaion angle is %f\n", (max_indexR[0]-target_dim/2)*rot_resolution);
 }
 
 
 inline ArrayXXcf CorrelationFlow::fft(const ArrayXXf& x)
 {
     ArrayXXcf xf = ArrayXXcf(width/2+1, height);
+
     fft_plan=fftwf_plan_dft_r2c_2d(height, width, (float(*))(x.data()), 
         (float(*)[2])(xf.data()), FFTW_ESTIMATE); // reverse order for column major
+    
     fftwf_execute(fft_plan);
+    
     return xf;
 }
 
@@ -83,12 +108,17 @@ inline ArrayXXcf CorrelationFlow::fft(const ArrayXXf& x)
 inline ArrayXXf CorrelationFlow::ifft(const ArrayXXcf& xf)
 {
     ArrayXXf x = ArrayXXf(width, height);
+    
     ArrayXXcf cxf = xf;
+    
     fft_plan=fftwf_plan_dft_c2r_2d(height, width, (float(*)[2])(cxf.data()),
         (float(*))(x.data()), FFTW_ESTIMATE);
+    
     fftwf_execute(fft_plan);
+    
     return x/x.size();
 }
+
 
 inline ArrayXXcf CorrelationFlow::gaussian_kernel()
 {
@@ -128,3 +158,60 @@ inline ArrayXXcf CorrelationFlow::gaussian_kernel(const ArrayXXcf& xf)
 
     return fft((-1/(sigma*sigma)*xxyy).exp());
 }
+
+
+inline void CorrelationFlow::rotation_base(const cv::Mat& img)
+{
+    rot_base.clear();
+
+    cv::Mat rot_mat(2, 3, CV_32FC1);
+    cv::Mat img_rot;
+    cv::Point center = cv::Point(img.cols/2, img.rows/2);
+    double scale = 1.0;
+    double angle = -1.0*int(max_rotation/rot_resolution)*rot_resolution;
+    
+    for (int i=0; i<target_dim; i++)
+    {
+        if (i==int(target_dim/2))
+        {
+            rot_base.push_back(sample);
+        }
+        else
+        {
+            angle = angle + rot_resolution;
+            rot_mat = cv::getRotationMatrix2D(center, angle, scale);
+            cv::warpAffine(img, img_rot, rot_mat, img.size());
+            basis = Eigen::Map<ArrayXXf>(&img_rot.at<float>(0,0), width, height)/255.0;
+            rot_base.push_back(basis);
+        }
+    }
+
+    //return;
+}
+
+
+inline ArrayXXcf CorrelationFlow::rotation_kernel(const ArrayXXf& arr0)
+{
+    //unsigned int N = height * width;
+    ArrayXXf ker = ArrayXXf::Zero(target_dim, 1);
+
+    for(int i=0; i<target_dim; i++)
+    {
+        ArrayXXf diff = arr0 - rot_base.at(i);
+
+        ker(i, 0) = -1/(sigma*sigma)*(diff.square().abs().sum());
+    }
+
+    return fft(ker.exp());
+}
+
+/*
+inline double CorrelationFlow::rotation_estimation(const ArrayXXcf& arr1)
+{
+    kernel_rot = rotation_kernel(arr1);
+
+    output_rot = ifft(kernel_rot*filter_rot_fft);
+
+
+}
+*/
