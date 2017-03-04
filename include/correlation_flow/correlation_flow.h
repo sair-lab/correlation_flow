@@ -26,7 +26,7 @@
 #include <Eigen/Dense>
 #include <fftw3.h>
 #include "common/timer.h"
-
+#include "common/debug.h"
 using namespace std;
 using namespace Eigen;
 
@@ -89,7 +89,7 @@ private:
 
     bool initialized;
 
-    float max_rotation;
+    // float max_rotation;
     float rot_resolution;
     int target_dim;
     ArrayXXcf target_rot_fft;

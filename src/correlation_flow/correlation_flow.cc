@@ -21,8 +21,8 @@
 
 CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
 {
-    width = 360;
-    height = 240;
+    width = 150;
+    height = 150;
     lamda = 0.1;
     sigma = 0.2;
 
@@ -31,9 +31,10 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     target_fft = fft(target);
     filter_fft = fft(ArrayXXf::Zero(width, height));
 
-    max_rotation = 10.0;
+    // max_rotation = 180.0;
     rot_resolution = 1.0;
-    target_dim = 2*int(max_rotation/rot_resolution)+2;
+    // target_dim = 2*int(max_rotation/rot_resolution)+2;
+    target_dim = 360 / rot_resolution;
     ArrayXXf target_rot = ArrayXXf::Zero(target_dim, 1);
     target_rot(target_dim/2, 0) = 1;
     target_rot_fft = fft(target_rot);
@@ -166,31 +167,20 @@ inline ArrayXXcf CorrelationFlow::gaussian_kernel(const ArrayXXcf& xf)
 inline void CorrelationFlow::rotation_base(const cv::Mat& img)
 {
     rot_base.clear();
-
+    rot_base.push_back(sample);
     cv::Mat rot_mat(2, 3, CV_32FC1);
     cv::Mat img_rot;
-    //cv::Point center = cv::Point(img.cols/2, img.rows/2);
     double scale = 1.0;
     double angle = -1.0*int(max_rotation/rot_resolution+1)*rot_resolution;
-    
-    for (int i=0; i<target_dim; i++)
+
+    for (int i=1; i<target_dim; i++)
     {
-        if (i==int(target_dim/2))
-        {
-            rot_base.push_back(sample);
-        }
-        else
-        {
-            rot_mat = cv::getRotationMatrix2D(cv::Point(width/2, height/2), angle, scale);
-            cv::warpAffine(img, img_rot, rot_mat, img.size());
-            basis = Eigen::Map<ArrayXXf>(&img_rot.at<float>(0,0), width, height)/255.0;
-            rot_base.push_back(basis);
-        }
-
-        angle = angle + rot_resolution;
+        angle = i*rot_resolution;
+        rot_mat = cv::getRotationMatrix2D(cv::Point(width/2, height/2), angle, scale);
+        cv::warpAffine(img, img_rot, rot_mat, img.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT,127);
+        basis = Eigen::Map<ArrayXXf>(&img_rot.at<float>(0,0), width, height)/255.0;
+        rot_base.push_back(basis);
     }
-
-    //return;
 }
 
 

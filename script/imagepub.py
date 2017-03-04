@@ -31,11 +31,11 @@ cam.release()
 
 #publish rotated images from a single image
 #------------------------------------------
-img = cv2.imread('panda3.jpg')
+img = cv2.imread('/home/eee/drones/src/correlation_flow/script/panda3.jpg')
 height, width = img.shape[:2]
 #img = cv2.resize(img, (360, 240))
 x, y = scipy.mgrid[-height/2: height/2 , -width/2: width/2 ]
-g = scipy.exp(- (x ** 2/float(height*15) + y ** 2 / float(width*15)))
+g = scipy.exp(- (x ** 2/float(height*20) + y ** 2 / float(width*20)))
 i = 0
 while not rospy.is_shutdown():
 
@@ -46,11 +46,13 @@ while not rospy.is_shutdown():
 #        img = cv2.warpAffine(img,M,(360,240))
 #        msg_frame = CvBridge().cv2_to_imgmsg(img, "bgr8")
 
-    M = cv2.getRotationMatrix2D((width/2,height/2), 4*i, 1)
+    M = cv2.getRotationMatrix2D((width/2,height/2), 1*i, 1)
     dst = cv2.warpAffine(img,M,(width,height),flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT,  borderValue=(127, 127, 127))
-    dst[:,:,0] *= g 
-    dst[:,:,1] *= g 
-    dst[:,:,2] *= g 
+    dst1 = np.float32(dst)
+    # dst1[:,:,0] *= g 
+    # dst1[:,:,1] *= g 
+    # dst1[:,:,2] *= g 
+    dst = np.uint8(dst1)
     msg_frame = CvBridge().cv2_to_imgmsg(dst, "bgr8")
 
     VideoRaw.publish(msg_frame)
