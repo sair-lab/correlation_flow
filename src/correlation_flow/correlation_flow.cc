@@ -31,12 +31,11 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     target_fft = fft(target);
     filter_fft = fft(ArrayXXf::Zero(width, height));
 
-    // max_rotation = 180.0;
     rot_resolution = 1.0;
-    // target_dim = 2*int(max_rotation/rot_resolution)+2;
     target_dim = 360 / rot_resolution;
     ArrayXXf target_rot = ArrayXXf::Zero(target_dim, 1);
     target_rot(target_dim/2, 0) = 1;
+
     target_rot_fft = fft(target_rot);
     filter_rot_fft = fft(ArrayXXf::Zero(target_dim, 1));
 
@@ -79,7 +78,11 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     output_rot = ifft(kernel_rot*filter_rot_fft);
     max_responseR = output_rot.maxCoeff(&(max_indexR[0]), &(max_indexR[1]));
 
+    show_image(output/max_response, height, width, "response");
+    cv::waitKey(1);
 
+    float trans_psr = get_psr(output, max_index[0], max_index[1]);
+    float rot_psr = get_psr(output_rot, max_indexR[0], max_indexR[1]);
     //update filter
     train = sample;
     train_fft = sample_fft;
@@ -91,8 +94,8 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     filter_rot_fft = target_rot_fft/(kernel_rot + lamda);
 
     timer.toc("callback:");
-    ROS_WARN("x=%d, y=%d\n", int(max_index[0] - width/2), int(max_index[1] - height/2));
-    ROS_WARN("rotaion angle is %f\n", (max_indexR[0]-target_dim/2)*rot_resolution);
+    ROS_WARN("x=%d, y=%d\n with psr: %f", int(max_index[0] - width/2), int(max_index[1] - height/2), trans_psr);
+    ROS_WARN("angle is %f with psr: %f", (max_indexR[0]-target_dim/2)*rot_resolution, rot_psr);
 }
 
 
@@ -170,12 +173,11 @@ inline void CorrelationFlow::rotation_base(const cv::Mat& img)
     rot_base.push_back(sample);
     cv::Mat rot_mat(2, 3, CV_32FC1);
     cv::Mat img_rot;
-    double scale = 1.0;
-    double angle = -1.0*int(max_rotation/rot_resolution+1)*rot_resolution;
+    double scale = 1;
 
     for (int i=1; i<target_dim; i++)
     {
-        angle = i*rot_resolution;
+        double angle = i*rot_resolution;
         rot_mat = cv::getRotationMatrix2D(cv::Point(width/2, height/2), angle, scale);
         cv::warpAffine(img, img_rot, rot_mat, img.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT,127);
         basis = Eigen::Map<ArrayXXf>(&img_rot.at<float>(0,0), width, height)/255.0;
@@ -198,6 +200,17 @@ inline ArrayXXcf CorrelationFlow::rotation_kernel(const ArrayXXf& arr0)
     }
     
     return fft(ker.exp());
+}
+
+inline float CorrelationFlow::get_psr(const ArrayXXf& output, ArrayXXf::Index x, ArrayXXf::Index y)
+{
+    float max_output = output(x, y);
+
+    float side_lobe_mean = (output.sum()-max_output)/(output.size()-1);
+
+    float std  = sqrt((output-side_lobe_mean).square().mean());
+
+    return (max_response - side_lobe_mean)/std;
 }
 
 /*

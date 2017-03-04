@@ -54,6 +54,8 @@ private:
 
     inline ArrayXXcf rotation_kernel(const ArrayXXf&);
 
+    inline float get_psr(const ArrayXXf&, ArrayXXf::Index, ArrayXXf::Index);
+
 private:
 
     ros::NodeHandle nh;
