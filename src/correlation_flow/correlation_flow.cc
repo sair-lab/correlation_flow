@@ -15,14 +15,15 @@
 //     You should have received a copy of the GNU General Public License
 //     along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 
+#include <math.h>
 #include <ros/ros.h>
 #include "correlation_flow/correlation_flow.h"
 
 
 CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
 {
-    width = 150;
-    height = 150;
+    width = 360;
+    height = 240;
     lamda = 0.1;
     sigma = 0.2;
 
@@ -40,6 +41,15 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     target_rot_fft = fft(target_rot);
     filter_rot_fft = fft(ArrayXXf::Zero(target_dim, 1));
 
+    max_scale = 2;
+    scale_res = 0.1;
+    sca_target_dim = 2*max_scale/scale_res;
+    ArrayXXf target_sca = ArrayXXf::Zero(sca_target_dim, 1);
+    target_sca(sca_target_dim/2, 0) = 1;
+    target_sca_fft = fft(target_sca);
+    filter_sca_fft = fft(ArrayXXf::Zero(sca_target_dim, 1));
+
+
     initialized = false;
 }
 
@@ -54,7 +64,6 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     sample = Eigen::Map<ArrayXXf>(&sample_cv.at<float>(0,0), width, height)/255.0;
     sample_fft = fft(sample);
 
-
     if (initialized == false)
     {
         train = sample;
@@ -65,6 +74,10 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
         rotation_base(sample_cv);
         kernel_rot = rotation_kernel(train);
         filter_rot_fft = target_rot_fft/(kernel_rot + lamda);
+
+        scale_base(sample_cv);
+        kernel_sca = scale_kernel(train);
+        filter_sca_fft = target_sca_fft/(kernel_sca + lamda);
 
         initialized = true;
         return;
@@ -79,6 +92,10 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     output_rot = ifft(kernel_rot*filter_rot_fft);
     max_responseR = output_rot.maxCoeff(&(max_indexR[0]), &(max_indexR[1]));
 
+    kernel_sca = scale_kernel(sample);
+    output_sca = ifft(kernel_sca*filter_sca_fft);
+    max_responseS = output_sca.maxCoeff(&(max_indexS[0]), &(max_indexS[1]));
+
 
     //update filter
     train = sample;
@@ -90,9 +107,14 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     kernel_rot = rotation_kernel(train);
     filter_rot_fft = target_rot_fft/(kernel_rot + lamda);
 
+    scale_base(sample_cv);
+    kernel_sca = scale_kernel(train);
+    filter_sca_fft = target_sca_fft/(kernel_sca + lamda);
+
     timer.toc("callback:");
     ROS_WARN("x=%d, y=%d\n", int(max_index[0] - width/2), int(max_index[1] - height/2));
     ROS_WARN("rotaion angle is %f\n", (max_indexR[0]-target_dim/2)*rot_resolution);
+    ROS_WARN("scaling factor is %f\n", (max_indexS[0]-sca_target_dim/2)*scale_res);
 }
 
 
@@ -171,7 +193,7 @@ inline void CorrelationFlow::rotation_base(const cv::Mat& img)
     cv::Mat rot_mat(2, 3, CV_32FC1);
     cv::Mat img_rot;
     double scale = 1.0;
-    double angle = -1.0*int(max_rotation/rot_resolution+1)*rot_resolution;
+    double angle; //= -1.0*int(max_rotation/rot_resolution+1)*rot_resolution;
 
     for (int i=1; i<target_dim; i++)
     {
@@ -196,8 +218,54 @@ inline ArrayXXcf CorrelationFlow::rotation_kernel(const ArrayXXf& arr0)
 
         ker(i, 0) = -1/(sigma*sigma)*diff_square;
     }
-    
+
     return fft(ker.exp());
+}
+
+
+inline void CorrelationFlow::scale_base(const cv::Mat& imgs)
+{
+    sca_base.clear();
+//    sca_base.push_back(sample);
+    cv::Mat sca_mat(2, 3, CV_32FC1);
+    cv::Mat img_scale;
+
+    for (int i=1; i<=sca_target_dim/2; i++)
+    {
+        sca_mat = cv::getRotationMatrix2D(cv::Point(width/2, height/2), 0, 0.1*i);
+        cv::warpAffine(imgs, img_scale, sca_mat, imgs.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT,127);
+        basis_s = Eigen::Map<ArrayXXf>(&img_scale.at<float>(0,0), width, height)/255.0;
+        sca_base.push_back(basis_s);
+    }
+}
+
+
+inline ArrayXXcf CorrelationFlow::scale_kernel(const ArrayXXf& arr1)
+{
+    unsigned int N = height * width;
+    
+    ArrayXXf ker = ArrayXXf::Zero(sca_target_dim, 1);
+
+    for(int i=0; i<sca_target_dim; i++)
+    {
+        if (i<sca_target_dim/4)
+        {
+            ker(i, 0) = 0;
+        }
+        else if (i>=0.75*sca_target_dim)
+        {
+            ker(i, 0) = 0;
+        }
+        else
+        {
+            float diff_square = (arr1 - sca_base.at(i-sca_target_dim/4)).square().abs().sum()/N;
+
+            ker(i, 0) = exp(-1/(sigma*sigma)*diff_square);
+        }
+
+    }
+    
+    return fft(ker);
 }
 
 /*

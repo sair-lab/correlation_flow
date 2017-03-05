@@ -54,6 +54,11 @@ private:
 
     inline ArrayXXcf rotation_kernel(const ArrayXXf&);
 
+    inline void scale_base(const cv::Mat&);
+
+    inline ArrayXXcf scale_kernel(const ArrayXXf&);
+
+
 private:
 
     ros::NodeHandle nh;
@@ -100,6 +105,18 @@ private:
     ArrayXXf output_rot;
     ArrayXXf::Index max_indexR[2];
     float max_responseR;
+
+    float max_scale;
+    float scale_res;
+    int sca_target_dim;
+    ArrayXXcf target_sca_fft;
+    ArrayXXcf filter_sca_fft;
+    ArrayXXcf kernel_sca;
+    ArrayXXf  basis_s;
+    std::vector<ArrayXXf> sca_base;
+    ArrayXXf output_sca;
+    ArrayXXf::Index max_indexS[2];
+    float max_responseS;
 
     Jeffsan::Timer timer;
 
