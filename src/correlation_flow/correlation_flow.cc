@@ -114,7 +114,7 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     timer.toc("callback:");
     ROS_WARN("x=%d, y=%d\n", int(max_index[0] - width/2), int(max_index[1] - height/2));
     ROS_WARN("rotaion angle is %f\n", (max_indexR[0]-target_dim/2)*rot_resolution);
-    ROS_WARN("scaling factor is %f\n", (max_indexS[0]-sca_target_dim/2)*scale_res);
+    ROS_WARN("scaling factor is %f\n", (max_indexS[0]-sca_target_dim/2)*scale_res+1);
 }
 
 
