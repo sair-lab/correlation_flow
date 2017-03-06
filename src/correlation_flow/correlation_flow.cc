@@ -36,12 +36,11 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     target_dim = 360 / rot_resolution;
     ArrayXXf target_rot = ArrayXXf::Zero(target_dim, 1);
     target_rot(target_dim/2, 0) = 1;
-
     target_rot_fft = fft(target_rot);
     filter_rot_fft = fft(ArrayXXf::Zero(target_dim, 1));
 
-    max_scale = 2;
-    scale_res = 0.1;
+    max_scale = 1.5;
+    scale_res = 0.05;
     sca_target_dim = 2*max_scale/scale_res;
     ArrayXXf target_sca = ArrayXXf::Zero(sca_target_dim, 1);
     target_sca(sca_target_dim/2, 0) = 1;
@@ -95,9 +94,9 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     output_sca = ifft(kernel_sca*filter_sca_fft);
     max_responseS = output_sca.maxCoeff(&(max_indexS[0]), &(max_indexS[1]));
 
-
     float trans_psr = get_psr(output, max_index[0], max_index[1]);
     float rot_psr = get_psr(output_rot, max_indexR[0], max_indexR[1]);
+    
     //update filter
     train = sample;
     train_fft = sample_fft;
@@ -107,6 +106,8 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     rotation_base(sample_cv);
     kernel_rot = rotation_kernel(train);
     filter_rot_fft = target_rot_fft/(kernel_rot + lamda);
+
+    // cout<<output_sca<<endl;
 
     scale_base(sample_cv);
     kernel_sca = scale_kernel(train);
@@ -224,16 +225,16 @@ inline ArrayXXcf CorrelationFlow::rotation_kernel(const ArrayXXf& arr0)
     return fft(ker.exp());
 }
 
+
 inline void CorrelationFlow::scale_base(const cv::Mat& imgs)
 {
     sca_base.clear();
-//    sca_base.push_back(sample);
     cv::Mat sca_mat(2, 3, CV_32FC1);
     cv::Mat img_scale;
 
     for (int i=1; i<=sca_target_dim/2; i++)
     {
-        sca_mat = cv::getRotationMatrix2D(cv::Point(width/2, height/2), 0, 0.1*i);
+        sca_mat = cv::getRotationMatrix2D(cv::Point(width/2, height/2), 0, scale_res*i);
         cv::warpAffine(imgs, img_scale, sca_mat, imgs.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT,127);
         basis_s = Eigen::Map<ArrayXXf>(&img_scale.at<float>(0,0), width, height)/255.0;
         sca_base.push_back(basis_s);
@@ -247,27 +248,21 @@ inline ArrayXXcf CorrelationFlow::scale_kernel(const ArrayXXf& arr1)
     
     ArrayXXf ker = ArrayXXf::Zero(sca_target_dim, 1);
 
-    for(int i=0; i<sca_target_dim; i++)
+    for(int i=0; i<sca_target_dim/2; i++)
     {
-        if (i<sca_target_dim/4)
-        {
-            ker(i, 0) = 0;
-        }
-        else if (i>=0.75*sca_target_dim)
-        {
-            ker(i, 0) = 0;
-        }
-        else
-        {
-            float diff_square = (arr1 - sca_base.at(i-sca_target_dim/4)).square().abs().sum()/N;
 
-            ker(i, 0) = exp(-1/(sigma*sigma)*diff_square);
-        }
+        float diff_square = (arr1 - sca_base.at(i)).square().abs().sum()/N;
+
+        ker(i, 0) = exp(-1/(sigma*sigma)*diff_square);
+
+        // printf("%f ", ker(i,0));
+        // if ((i+1)%5==0) printf("\n");
 
     }
-    
+    // printf("**************\n");
     return fft(ker);
 }
+
 
 inline float CorrelationFlow::get_psr(const ArrayXXf& output, ArrayXXf::Index x, ArrayXXf::Index y)
 {
@@ -279,6 +274,7 @@ inline float CorrelationFlow::get_psr(const ArrayXXf& output, ArrayXXf::Index x,
 
     return (max_response - side_lobe_mean)/std;
 }
+
 
 /*
 inline double CorrelationFlow::rotation_estimation(const ArrayXXcf& arr1)
