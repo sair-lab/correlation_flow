@@ -58,6 +58,8 @@ private:
 
     inline ArrayXXcf scale_kernel(const ArrayXXf&);
 
+    inline float get_psr(const ArrayXXf&, ArrayXXf::Index, ArrayXXf::Index);
+
 
 private:
 
