@@ -9,26 +9,26 @@ import scipy
 
 rospy.init_node('VideoPublisher',anonymous=False)
 VideoRaw = rospy.Publisher('/camera/rgb/image_color', Image, queue_size=10)
-rate = rospy.Rate(20)
+rate = rospy.Rate(50)
 
 
-"""
+
 #publish images from a camera
 #----------------------------
 cam = cv2.VideoCapture(1)
 while not rospy.is_shutdown():
     meta, frame = cam.read()
     msg_frame = CvBridge().cv2_to_imgmsg(frame, "bgr8")
-    VideoRaw.publish(msg_frame)q
+    VideoRaw.publish(msg_frame)
     cv2.imshow('frame', frame)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
     rate.sleep()
 cam.release()
 #----------------------------
+
+
 """
-
-
 #publish rotated images from a single image
 #------------------------------------------
 img = cv2.imread('/home/eee/drones/src/correlation_flow/script/panda3.jpg')
@@ -62,7 +62,7 @@ while not rospy.is_shutdown():
         break
     rate.sleep()
 #-------------------------------------------
-
+"""
 
 cv2.destroyAllWindows()
 

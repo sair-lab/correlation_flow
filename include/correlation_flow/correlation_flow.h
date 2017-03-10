@@ -75,6 +75,8 @@ private:
 
     cv::Mat image;
     cv::Mat sample_cv;
+    cv::Mat cropImg;
+    cv::Rect imgROI;
 
     ArrayXXf  sample;          // sample to be predict
     ArrayXXcf sample_fft;      // key depth cloud
@@ -108,8 +110,8 @@ private:
     ArrayXXf::Index max_indexR[2];
     float max_responseR;
 
-    float max_scale;
-    float scale_res;
+    float max_level;
+    float scale_factor;
     int sca_target_dim;
     ArrayXXcf target_sca_fft;
     ArrayXXcf filter_sca_fft;

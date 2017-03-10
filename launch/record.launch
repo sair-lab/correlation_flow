@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+
+<launch>
+
+    <include file="$(find vicon_xb)/launch/vicon_xb.launch"/>
+
+    <node pkg="correlation_flow" type="imagepub.py" name="imagepub" />
+
+    <node name="datarecord" pkg="rosbag" type="record" 
+		    args="-o $(find correlation_flow)/bag/data 
+                    /camera/rgb/image_color 
+                    /vicon_xb/viconPoseTopic"/>
+
+    <node pkg="tf" type="static_transform_publisher" name="local_origin_to_imu" 
+        args="0 0 0 0 0 0 local_origin base_imu_link 50" />
+
+</launch>
