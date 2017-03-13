@@ -41,7 +41,7 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
 
     max_level = 1.2;
     scale_factor = 0.02;
-    sca_target_dim = (2*max_level/scale_factor);
+    sca_target_dim = 2*max_level/scale_factor;
     ArrayXXf target_sca = ArrayXXf::Zero(sca_target_dim, 1);
     target_sca(sca_target_dim/2, 0) = 1;
     target_sca_fft = fft(target_sca);
@@ -54,35 +54,41 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
 void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
 {
     timer.tic();
+
     // cv::Mat image_resize;
     // cv::resize(cv_bridge::toCvShare(msg, "bgr8")->image, image_resize, cv::Size(width, height));
+    // cv::Mat cropT;
+    // image_resize = cv_bridge::toCvShare(msg, "bgr8")->image;
+    // imgROI = cv::Rect((image_resize.cols-width)/2, (image_resize.rows-height)/2, width, height);
+    // cv::cvtColor(image_resize, image_resize, cv::COLOR_BGR2GRAY);
+    // cropT = image_resize(imgROI);
+    // cropT.convertTo(cropT, CV_32FC1);
+    // ArrayXXf sampleT = Eigen::Map<ArrayXXf>(&cropT.at<float>(0,0), width, height)/255.0;
+    // ArrayXXcf sampleT_fft = fft(sampleT);
+
     image = cv_bridge::toCvCopy(msg, "bgr8")->image;
     cv::cvtColor(image, image, cv::COLOR_BGR2GRAY);
-    image.convertTo(sample_cv, CV_32FC1);
-
     imgROI = cv::Rect((image.cols-width)/2, (image.rows-height)/2, width, height);
-    cropImg = sample_cv(imgROI);
-    cv::Mat sss;
-    cropImg.convertTo(sss, CV_8UC1);
-    cv::imshow("sss", sss);
-    cv::waitKey(1);
+    cropImg = image(imgROI);
+    image.convertTo(sample_cv, CV_32FC1);
+    cropImg.convertTo(cropImg, CV_32FC1);
 
     sample = Eigen::Map<ArrayXXf>(&cropImg.at<float>(0,0), width, height)/255.0;
     sample_fft = fft(sample);
 
 
     if (initialized == false)
-    {
+    {   
         train = sample;
         train_fft = sample_fft;
         kernel = gaussian_kernel();
         filter_fft = target_fft/(kernel + lamda);
 
-        rotation_base(sample_cv);
+        rotation_base(image);
         kernel_rot = rotation_kernel(train);
         filter_rot_fft = target_rot_fft/(kernel_rot + lamda);
 
-        scale_base(sample_cv);
+        scale_base(image);
         kernel_sca = scale_kernel(train);
         filter_sca_fft = target_sca_fft/(kernel_sca + lamda);
 
@@ -95,8 +101,6 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     kernel = gaussian_kernel(sample_fft);
     output = ifft(filter_fft*kernel);
     max_response = output.maxCoeff(&(max_index[0]), &(max_index[1]));
-
-    show_image(output/max_response*255, height, width, "output");
 
     kernel_rot = rotation_kernel(sample);
     output_rot = ifft(kernel_rot*filter_rot_fft);
@@ -116,11 +120,11 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     kernel = gaussian_kernel();
     filter_fft = target_fft/(kernel + lamda);
 
-    rotation_base(sample_cv);
+    rotation_base(image);
     kernel_rot = rotation_kernel(train);
     filter_rot_fft = target_rot_fft/(kernel_rot + lamda);
 
-    scale_base(sample_cv);
+    scale_base(image);
     kernel_sca = scale_kernel(train);
     filter_sca_fft = target_sca_fft/(kernel_sca + lamda);
 
@@ -207,14 +211,15 @@ inline void CorrelationFlow::rotation_base(const cv::Mat& img)
     rot_base.push_back(sample);
     cv::Mat rot_mat(2, 3, CV_32FC1);
     cv::Mat img_rot;
-    double scale = 1.0;
+    double angle;
 
     for (int i=1; i<target_dim; i++)
     {
-        double angle = i*rot_resolution;
-        rot_mat = cv::getRotationMatrix2D(cv::Point(img.cols/2, img.rows/2), angle, scale);
-        cv::warpAffine(img, img_rot, rot_mat, img.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT,127);
+        angle = i*rot_resolution;
+        rot_mat = cv::getRotationMatrix2D(cv::Point(img.cols/2, img.rows/2), angle, 1.0);
+        cv::warpAffine(img, img_rot, rot_mat, img.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT, 127);
         img_rot = img_rot(imgROI);
+        img_rot.convertTo(img_rot, CV_32FC1);
         basis = Eigen::Map<ArrayXXf>(&img_rot.at<float>(0,0), width, height)/255.0;
         rot_base.push_back(basis);
 
@@ -236,10 +241,14 @@ inline ArrayXXcf CorrelationFlow::rotation_kernel(const ArrayXXf& arr0)
     {
         float diff_square = (arr0 - rot_base.at(i)).square().abs().sum()/N;
 
-        ker(i, 0) = -1/(sigma*sigma)*diff_square;
+        ker(i, 0) = exp(-1/(sigma*sigma)*diff_square);
     }
 
-    return fft(ker.exp());
+     // for (int i=11; i<target_dim; i++)
+        // ker(i, 0) = 0.2;
+        // printf("%f ", ker(i,0));
+    
+    return fft(ker);
 }
 
 
@@ -252,8 +261,9 @@ inline void CorrelationFlow::scale_base(const cv::Mat& imgs)
     for (int i=1; i<=sca_target_dim/2; i++)
     {
         sca_mat = cv::getRotationMatrix2D(cv::Point(imgs.cols/2, imgs.rows/2), 0, i*scale_factor);
-        cv::warpAffine(imgs, img_scale, sca_mat, imgs.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT,127);
+        cv::warpAffine(imgs, img_scale, sca_mat, imgs.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT, 127);
         img_scale = img_scale(imgROI);
+        img_scale.convertTo(img_scale, CV_32FC1);
         basis_s = Eigen::Map<ArrayXXf>(&img_scale.at<float>(0,0), width, height)/255.0;
         sca_base.push_back(basis_s);
 

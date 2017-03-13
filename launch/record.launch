@@ -3,12 +3,14 @@
 <launch>
 
     <include file="$(find vicon_xb)/launch/vicon_xb.launch"/>
+    <include file="$(find px4flow)/launch/px4flow.launch"/>
 
     <node pkg="correlation_flow" type="imagepub.py" name="imagepub" />
 
     <node name="datarecord" pkg="rosbag" type="record" 
-		    args="-o $(find correlation_flow)/bag/data 
-                    /camera/rgb/image_color 
+		    args="-o $(find correlation_flow)/bag/px 
+                    /camera/rgb/image_color
+                    /px4flow/opt_flow
                     /vicon_xb/viconPoseTopic"/>
 
     <node pkg="tf" type="static_transform_publisher" name="local_origin_to_imu" 
