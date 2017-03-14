@@ -22,14 +22,19 @@ if __name__ == '__main__':
     outtxt.write('# text file for '+ args.inputbag + '\n# format: time stamp x y z qx qy qz qw\n')
 
     for topic, msg, t in inbag.read_messages():
-        if topic == "/vicon_xb/viconPoseTopic":
+        if topic == "/px4flow/opt_flow":
             outtxt.write(str.format("{0:.9f} ", t.to_sec()))
-            outtxt.write(str.format("{0:.9f} ", msg.vel.x))
-            outtxt.write(str.format("{0:.9f} ", msg.vel.y*(-1.0)))
+            outtxt.write(str.format("{0:.9f} ", msg.velocity_x))
+            outtxt.write(str.format("{0:.9f} ", msg.velocity_y))
             outtxt.write('0 ')
             outtxt.write('0 ')
             outtxt.write('0 ')
             outtxt.write('0 ')
             outtxt.write('0\n')
 
+# topic = "/px4flow/opt_flow"
+# header ground_distance flow_x flow_y velocity_x velocity_y quality
+# topic = "/vicon_xb/viconPoseTopic"
+# header pose.position(x, y, z) pose.orientaion(x, y, z, w) vel(x, y, z)
 
+# use t.to_sec() or msg.header.stamp.to_sec() ???

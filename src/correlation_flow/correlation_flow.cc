@@ -32,15 +32,15 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     target_fft = fft(target);
     filter_fft = fft(ArrayXXf::Zero(width, height));
 
-    rot_resolution = 1.0;
+    rot_resolution = 10.0;
     target_dim = 360 / rot_resolution;
     ArrayXXf target_rot = ArrayXXf::Zero(target_dim, 1);
     target_rot(target_dim/2, 0) = 1;
     target_rot_fft = fft(target_rot);
     filter_rot_fft = fft(ArrayXXf::Zero(target_dim, 1));
 
-    max_level = 1.2;
-    scale_factor = 0.02;
+    max_level = 1.5;
+    scale_factor = 0.05;
     sca_target_dim = 2*max_level/scale_factor;
     ArrayXXf target_sca = ArrayXXf::Zero(sca_target_dim, 1);
     target_sca(sca_target_dim/2, 0) = 1;
@@ -48,23 +48,14 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     filter_sca_fft = fft(ArrayXXf::Zero(sca_target_dim, 1));
 
     initialized = false;
+
+    pub = nh.advertise<geometry_msgs::TwistStamped>("corrFlow_velocity", 1000);
 }
 
 
 void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
 {
     timer.tic();
-
-    // cv::Mat image_resize;
-    // cv::resize(cv_bridge::toCvShare(msg, "bgr8")->image, image_resize, cv::Size(width, height));
-    // cv::Mat cropT;
-    // image_resize = cv_bridge::toCvShare(msg, "bgr8")->image;
-    // imgROI = cv::Rect((image_resize.cols-width)/2, (image_resize.rows-height)/2, width, height);
-    // cv::cvtColor(image_resize, image_resize, cv::COLOR_BGR2GRAY);
-    // cropT = image_resize(imgROI);
-    // cropT.convertTo(cropT, CV_32FC1);
-    // ArrayXXf sampleT = Eigen::Map<ArrayXXf>(&cropT.at<float>(0,0), width, height)/255.0;
-    // ArrayXXcf sampleT_fft = fft(sampleT);
 
     image = cv_bridge::toCvCopy(msg, "bgr8")->image;
     cv::cvtColor(image, image, cv::COLOR_BGR2GRAY);
@@ -76,6 +67,8 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     sample = Eigen::Map<ArrayXXf>(&cropImg.at<float>(0,0), width, height)/255.0;
     sample_fft = fft(sample);
 
+    std_msgs::Header h = msg->header;
+    t_now = h.stamp.toSec();
 
     if (initialized == false)
     {   
@@ -92,12 +85,15 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
         kernel_sca = scale_kernel(train);
         filter_sca_fft = target_sca_fft/(kernel_sca + lamda);
 
+        t_prev = t_now;
+
         initialized = true;
         printf("initialized.\n");
+
         return;
     }
 
-    //motion of current frame
+    // motion of current frame
     kernel = gaussian_kernel(sample_fft);
     output = ifft(filter_fft*kernel);
     max_response = output.maxCoeff(&(max_index[0]), &(max_index[1]));
@@ -110,11 +106,10 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     output_sca = ifft(kernel_sca*filter_sca_fft);
     max_responseS = output_sca.maxCoeff(&(max_indexS[0]), &(max_indexS[1]));
 
-
     float trans_psr = get_psr(output, max_index[0], max_index[1]);
     float rot_psr = get_psr(output_rot, max_indexR[0], max_indexR[1]);
     
-    //update filter
+    // update filter
     train = sample;
     train_fft = sample_fft;
     kernel = gaussian_kernel();
@@ -128,8 +123,27 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     kernel_sca = scale_kernel(train);
     filter_sca_fft = target_sca_fft/(kernel_sca + lamda);
 
+    // compute vx, vy, vz, w_yaw
+    double vx, vy;
+    double delt_t;
+    delt_t = t_now - t_prev;
+    vx = -1.0*((max_index[0]-width/2)/delt_t)*0.86/572.44;
+    vy = -1.0*((max_index[1]-height/2)/delt_t)*0.86/572.89;
+
+    geometry_msgs::TwistStamped vmsg;
+    vmsg.header = msg->header;
+    vmsg.twist.linear.x = vx;
+    vmsg.twist.linear.y = vy;
+    vmsg.twist.linear.z = 0;
+    pub.publish(vmsg);
+
+    t_prev = t_now;
+    save_file(vmsg, "/home/zh/catkin_ws/src/correlation_flow/script/cf_vel3.txt");
+    
+
     timer.toc("callback:");
 
+    ROS_WARN("vx=%f, vy=%f", vx, vy);
     ROS_WARN("x=%d, y=%d with psr: %f", int(max_index[0] - width/2), int(max_index[1] - height/2), trans_psr);
     ROS_WARN("angle is %f with psr: %f", (max_indexR[0]-target_dim/2)*rot_resolution, rot_psr);
     ROS_WARN("scaling factor is %f\n", (max_indexS[0]-sca_target_dim/2)*scale_factor+1);
@@ -307,6 +321,21 @@ inline float CorrelationFlow::get_psr(const ArrayXXf& output, ArrayXXf::Index x,
     float std  = sqrt((output-side_lobe_mean).square().mean());
 
     return (max_response - side_lobe_mean)/std;
+}
+
+
+inline void CorrelationFlow::save_file(geometry_msgs::TwistStamped twist, string filename)
+{
+    file.open(filename.c_str(), ios::app);
+    file<<boost::format("%.9f") % (twist.header.stamp.toSec())<<" "
+        <<twist.twist.linear.x<<" "
+        <<twist.twist.linear.y<<" "
+        <<twist.twist.linear.z<<" "
+        <<0<<" "
+        <<0<<" "
+        <<0<<" "
+        <<0<<endl;
+    file.close();
 }
 
 

@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+
+<launch>
+
+    <include file="$(find correlation_flow)/launch/correlation_flow.launch"/>
+
+	<node name="datarecord" pkg="rosbag" type="record" 
+		    args="-o $(find correlation_flow)/bag/cf_vel 
+                    /correlation_flow_node/corrFlow_velocity"/>
+
+    <node pkg="tf" type="static_transform_publisher" name="local_origin_to_imu" 
+        args="0 0 0 0 0 0 local_origin base_imu_link 50" />
+
+
+</launch>

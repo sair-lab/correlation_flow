@@ -18,7 +18,9 @@
 #ifndef CORRELATION_FLOW_H
 #define CORRELATION_FLOW_H
 
+#include <fstream>
 #include <ros/ros.h>
+#include <geometry_msgs/TwistStamped.h>
 #include <image_transport/image_transport.h>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -60,10 +62,13 @@ private:
 
     inline float get_psr(const ArrayXXf&, ArrayXXf::Index, ArrayXXf::Index);
 
+    inline void save_file(geometry_msgs::TwistStamped, string);
+
 
 private:
 
     ros::NodeHandle nh;
+    ros::Publisher pub;
 
     int width, height;
 
@@ -123,6 +128,9 @@ private:
     float max_responseS;
 
     Jeffsan::Timer timer;
+
+    ofstream file;
+    double t_prev, t_now;
 
 };
 #endif

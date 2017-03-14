@@ -4,15 +4,25 @@ import numpy as np
 import matplotlib.pyplot as plt
 from math import factorial
 
-data1 = np.loadtxt("vicon_vel_2.txt", skiprows=2)
+data1 = np.loadtxt("vicon_vxvy3.txt", skiprows=2)
 time1 = data1[:,0]
 vx_vicon = data1[:,1]
-vy_vicon = data1[:,2]
+vy_vicon = -1*data1[:,2]
 
-data2 = np.loadtxt("optflow_vel_2.txt", skiprows=2)
+data2 = np.loadtxt("px_vxvy3.txt", skiprows=2)
 time2 = data2[:,0]
 vx_of = data2[:,1]
 vy_of = data2[:,2]
+
+data3 = np.loadtxt("cf_vel3.txt", skiprows=0)
+time3 = data3[:,0]
+vx_cf = data3[:,1]
+vy_cf = data3[:,2]
+
+for i in xrange (4, len(vx_cf)):
+    vx_cf[i] = 0.5*vx_cf[i]+0.2*vx_cf[i-1]+0.15*vx_cf[i-2]+0.10*vx_cf[i-3]+0.05*vx_cf[i-4]
+    vy_cf[i] = 0.5*vy_cf[i]+0.2*vy_cf[i-1]+0.15*vy_cf[i-2]+0.10*vy_cf[i-3]+0.05*vy_cf[i-4]
+
 
 #data curve smoothing filter
 """
@@ -45,10 +55,12 @@ if __name__ == "__main__":
 
     plt.subplot(211)
     plt.plot(time1, vx_vicon, c='r', linewidth=2.0)
-    plt.plot(time2, vx_of, 'b')
+    plt.plot(time2, vx_of, 'y')
+    plt.plot(time3, vx_cf, 'b')
     plt.subplot(212)
     plt.plot(time1, vy_vicon, c='r', linewidth=2.0)
-    plt.plot(time2, vy_of, c='b')
+    plt.plot(time2, vy_of, c='y')
+    plt.plot(time3, vy_cf, c='b')
 #    plt.plot(time2, vy_filt, c='y', linewidth=2.0)
 
 #plt.plot(time1, vx_vicon, 'r', linewidth=2.0)

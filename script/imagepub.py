@@ -19,6 +19,7 @@ cam = cv2.VideoCapture(1)
 while not rospy.is_shutdown():
     meta, frame = cam.read()
     msg_frame = CvBridge().cv2_to_imgmsg(frame, "bgr8")
+    msg_frame.header.stamp = rospy.Time.now()
     VideoRaw.publish(msg_frame)
     cv2.imshow('frame', frame)
     if cv2.waitKey(1) & 0xFF == ord('q'):
