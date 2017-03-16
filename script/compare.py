@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 from math import factorial
+import tf
 
 data1 = np.loadtxt("vicon_yaw.txt", skiprows=2)
 time1 = data1[:,0] - data1[0,0]
@@ -12,7 +13,12 @@ vy_vicon = -1*data1[:,2]
 yaw = data1[:,3]
 wz_vicon = np.zeros(len(yaw)-1)
 for i in xrange (len(yaw)-1):
-    wz_vicon[i] = (yaw[i+1]-yaw[i])/(time1[i+1]-time1[i])
+    q1 = tf.transformations.quaternion_from_euler(0, 0, yaw[i])
+    q2 = tf.transformations.quaternion_from_euler(0, 0, yaw[i+1])
+    dq = tf.transformations.quaternion_multiply(q1,tf.transformations.quaternion_inverse(q2))
+    euler = tf.transformations.euler_from_quaternion(dq)
+    d_yaw = euler[2]
+    wz_vicon[i] = d_yaw/(time1[i+1]-time1[i])
 
 data2 = np.loadtxt("px_vxvy3.txt", skiprows=2)
 time2 = data2[:,0] - data1[0,0]
@@ -23,7 +29,7 @@ data3 = np.loadtxt("cf_yaw.txt", skiprows=0)
 time3 = data3[:,0] - data1[0,0]
 vx_cf = 0.75*data3[:,1]
 vy_cf = 0.75*data3[:,2]
-wz_cf = data3[:,3]
+wz_cf = data3[:,4]
 
 for i in xrange (4, len(vx_cf)):
     vx_cf[i] = 0.5*vx_cf[i]+0.2*vx_cf[i-1]+0.15*vx_cf[i-2]+0.10*vx_cf[i-3]+0.05*vx_cf[i-4]
@@ -75,8 +81,8 @@ if __name__ == "__main__":
     # plt.ylabel("speed[m/s]")
     # legend = plt.legend(loc='upper right')
 
-    plt.plot(time3, wz_cf, 'y', label="correlation flow")
     plt.plot(time1[1:], wz_vicon, c='r', linewidth=2.0, label="ground truth")
+    plt.plot(time3, wz_cf, 'b', label="correlation flow")
     legend = plt.legend(loc='upper right')
 
     plt.show()
