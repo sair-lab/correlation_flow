@@ -19,7 +19,7 @@
 #include <ros/ros.h>
 #include "correlation_flow/correlation_flow.h"
 
-
+string filename;
 CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
 {
     width = 320;
@@ -50,6 +50,11 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     initialized = false;
 
     pub = nh.advertise<geometry_msgs::TwistStamped>("corrFlow_velocity", 1000);
+
+    filename = "/home/zh/catkin_ws/src/correlation_flow/script/cf_yaw.txt";
+
+    file.open(filename, ios::trunc|ios::out);
+    file.close();
 }
 
 
@@ -146,14 +151,14 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     pub.publish(vmsg);
 
     t_prev = t_now;
-    save_file(vmsg, "/home/zh/catkin_ws/src/correlation_flow/script/cf_yaw.txt");
+    save_file(vmsg, filename);
 
 
     timer.toc("callback:");
 
-    ROS_WARN("vx=%f, vy=%f", vx, vy);
-    ROS_WARN("x=%d, y=%d with psr: %f", int(max_index[0] - width/2), int(max_index[1] - height/2), trans_psr);
-    ROS_WARN("angle is %f with psr: %f", (max_indexR[0]-target_dim/2)*rot_resolution, rot_psr);
+    ROS_WARN("vx=%f, vy=%f with psr: %f", vx, vy, trans_psr);
+    // ROS_WARN("x=%f, y=%d with psr: %f", vx, vy, trans_psr);
+    ROS_WARN("angle is %f with psr: %f", wz, rot_psr);
     ROS_WARN("scaling factor is %f\n", (max_indexS[0]-sca_target_dim/2)*scale_factor+1);
 
 }
