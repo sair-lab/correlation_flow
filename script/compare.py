@@ -2,22 +2,28 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import math
 from math import factorial
 
-data1 = np.loadtxt("vicon_vxvy3.txt", skiprows=2)
-time1 = data1[:,0]
+data1 = np.loadtxt("vicon_yaw.txt", skiprows=2)
+time1 = data1[:,0] - data1[0,0]
 vx_vicon = data1[:,1]
 vy_vicon = -1*data1[:,2]
+yaw = data1[:,3]
+wz_vicon = np.zeros(len(yaw)-1)
+for i in xrange (len(yaw)-1):
+    wz_vicon[i] = (yaw[i+1]-yaw[i])/(time1[i+1]-time1[i])
 
 data2 = np.loadtxt("px_vxvy3.txt", skiprows=2)
-time2 = data2[:,0]
+time2 = data2[:,0] - data1[0,0]
 vx_of = data2[:,1]
 vy_of = data2[:,2]
 
-data3 = np.loadtxt("cf_vel3.txt", skiprows=0)
-time3 = data3[:,0]
-vx_cf = data3[:,1]
-vy_cf = data3[:,2]
+data3 = np.loadtxt("cf_yaw.txt", skiprows=0)
+time3 = data3[:,0] - data1[0,0]
+vx_cf = 0.75*data3[:,1]
+vy_cf = 0.75*data3[:,2]
+wz_cf = data3[:,3]
 
 for i in xrange (4, len(vx_cf)):
     vx_cf[i] = 0.5*vx_cf[i]+0.2*vx_cf[i-1]+0.15*vx_cf[i-2]+0.10*vx_cf[i-3]+0.05*vx_cf[i-4]
@@ -53,17 +59,24 @@ if __name__ == "__main__":
 #    vy_filt = savitzky_golay(vy_of, 51, 3)
     plt.figure()
 
-    plt.subplot(211)
-    plt.plot(time1, vx_vicon, c='r', linewidth=2.0)
-    plt.plot(time2, vx_of, 'y')
-    plt.plot(time3, vx_cf, 'b')
-    plt.subplot(212)
-    plt.plot(time1, vy_vicon, c='r', linewidth=2.0)
-    plt.plot(time2, vy_of, c='y')
-    plt.plot(time3, vy_cf, c='b')
-#    plt.plot(time2, vy_filt, c='y', linewidth=2.0)
+    # plt.subplot(211)
+    # plt.plot(time2, vx_of, 'y', label="PX4Flow")
+    # plt.plot(time3, vx_cf, 'b', label="correlation flow")
+    # plt.plot(time1, vx_vicon, c='r', linewidth=2.0, label="ground truth")
+    # plt.xlabel("time[s]")
+    # plt.ylabel("speed[m/s]")
+    # legend = plt.legend(loc='upper right')
 
-#plt.plot(time1, vx_vicon, 'r', linewidth=2.0)
-#plt.plot(time2, vx_of,'b')
+    # plt.subplot(212)
+    # plt.plot(time2, vy_of, c='y', label="PX4Flow")
+    # plt.plot(time3, vy_cf, c='b', label="correlation flow")
+    # plt.plot(time1, vy_vicon, c='r', linewidth=2.0, label="ground truth")
+    # plt.xlabel("time[s]")
+    # plt.ylabel("speed[m/s]")
+    # legend = plt.legend(loc='upper right')
 
-plt.show()
+    plt.plot(time3, wz_cf, 'y', label="correlation flow")
+    plt.plot(time1[1:], wz_vicon, c='r', linewidth=2.0, label="ground truth")
+    legend = plt.legend(loc='upper right')
+
+    plt.show()

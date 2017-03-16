@@ -32,7 +32,7 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     target_fft = fft(target);
     filter_fft = fft(ArrayXXf::Zero(width, height));
 
-    rot_resolution = 10.0;
+    rot_resolution = 1.0;
     target_dim = 360 / rot_resolution;
     ArrayXXf target_rot = ArrayXXf::Zero(target_dim, 1);
     target_rot(target_dim/2, 0) = 1;
@@ -61,6 +61,8 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     cv::cvtColor(image, image, cv::COLOR_BGR2GRAY);
     imgROI = cv::Rect((image.cols-width)/2, (image.rows-height)/2, width, height);
     cropImg = image(imgROI);
+    // cv::imshow("image", cropImg);
+
     image.convertTo(sample_cv, CV_32FC1);
     cropImg.convertTo(cropImg, CV_32FC1);
 
@@ -97,6 +99,8 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     kernel = gaussian_kernel(sample_fft);
     output = ifft(filter_fft*kernel);
     max_response = output.maxCoeff(&(max_index[0]), &(max_index[1]));
+    // show_image(output*255, height, width, "output");
+    cv::waitKey(1);
 
     kernel_rot = rotation_kernel(sample);
     output_rot = ifft(kernel_rot*filter_rot_fft);
@@ -123,23 +127,27 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     kernel_sca = scale_kernel(train);
     filter_sca_fft = target_sca_fft/(kernel_sca + lamda);
 
-    // compute vx, vy, vz, w_yaw
-    double vx, vy;
+    // compute vx, vy, vz, wz
+    double vx, vy, wz;
     double delt_t;
+    double rotation;
     delt_t = t_now - t_prev;
     vx = -1.0*((max_index[0]-width/2)/delt_t)*0.86/572.44;
     vy = -1.0*((max_index[1]-height/2)/delt_t)*0.86/572.89;
+    rotation = (max_indexR[0]-target_dim/2)*rot_resolution;
+    wz = (rotation*M_PI/180.0)/delt_t;
 
     geometry_msgs::TwistStamped vmsg;
     vmsg.header = msg->header;
     vmsg.twist.linear.x = vx;
     vmsg.twist.linear.y = vy;
     vmsg.twist.linear.z = 0;
+    vmsg.twist.angular.z = wz;
     pub.publish(vmsg);
 
     t_prev = t_now;
-    save_file(vmsg, "/home/zh/catkin_ws/src/correlation_flow/script/cf_vel3.txt");
-    
+    save_file(vmsg, "/home/zh/catkin_ws/src/correlation_flow/script/cf_yaw.txt");
+
 
     timer.toc("callback:");
 
@@ -331,7 +339,7 @@ inline void CorrelationFlow::save_file(geometry_msgs::TwistStamped twist, string
         <<twist.twist.linear.x<<" "
         <<twist.twist.linear.y<<" "
         <<twist.twist.linear.z<<" "
-        <<0<<" "
+        <<twist.twist.angular.z<<" "
         <<0<<" "
         <<0<<" "
         <<0<<endl;

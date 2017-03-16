@@ -4,6 +4,7 @@ import sys
 import os
 import rospy
 import rosbag
+import tf
 
 if __name__ == '__main__':
     print 1
@@ -22,11 +23,16 @@ if __name__ == '__main__':
     outtxt.write('# text file for '+ args.inputbag + '\n# format: time stamp x y z qx qy qz qw\n')
 
     for topic, msg, t in inbag.read_messages():
-        if topic == "/px4flow/opt_flow":
+        if topic == "/vicon_xb/viconPoseTopic":
+            q = (msg.pose.orientation.x,
+                msg.pose.orientation.y,
+                msg.pose.orientation.z,
+                msg.pose.orientation.w)
+            yaw = tf.transformations.euler_from_quaternion(q)[2]
             outtxt.write(str.format("{0:.9f} ", t.to_sec()))
-            outtxt.write(str.format("{0:.9f} ", msg.velocity_x))
-            outtxt.write(str.format("{0:.9f} ", msg.velocity_y))
-            outtxt.write('0 ')
+            outtxt.write(str.format("{0:.9f} ", msg.vel.x))
+            outtxt.write(str.format("{0:.9f} ", msg.vel.y))
+            outtxt.write(str.format("{0:.9f} ", yaw))
             outtxt.write('0 ')
             outtxt.write('0 ')
             outtxt.write('0 ')
@@ -35,6 +41,8 @@ if __name__ == '__main__':
 # topic = "/px4flow/opt_flow"
 # header ground_distance flow_x flow_y velocity_x velocity_y quality
 # topic = "/vicon_xb/viconPoseTopic"
-# header pose.position(x, y, z) pose.orientaion(x, y, z, w) vel(x, y, z)
+# header pose.position(x, y, z) pose.orientation(x, y, z, w) vel(x, y, z)
 
 # use t.to_sec() or msg.header.stamp.to_sec() ???
+
+# euler = tf.transformations.euler_from_quaternion(quaternion)
