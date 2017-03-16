@@ -22,6 +22,11 @@
 string filename;
 CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
 {
+    smooth = ArrayXf(5);
+    smooth << 0.05, 0.1, 0.15, 0.2, 0.5;
+    windowx = ArrayXf::Zero(5);
+    windowy = ArrayXf::Zero(5);
+
     width = 320;
     height = 240;
     lamda = 0.1;
@@ -32,7 +37,7 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     target_fft = fft(target);
     filter_fft = fft(ArrayXXf::Zero(width, height));
 
-    rot_resolution = 1.0;
+    rot_resolution = 10.0;
     target_dim = 360 / rot_resolution;
     ArrayXXf target_rot = ArrayXXf::Zero(target_dim, 1);
     target_rot(target_dim/2, 0) = 1;
@@ -51,7 +56,7 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
 
     pub = nh.advertise<geometry_msgs::TwistStamped>("corrFlow_velocity", 1000);
 
-    filename = "/home/zh/catkin_ws/src/correlation_flow/script/cf_yaw.txt";
+    filename = "/home/jitete/drones/src/correlation_flow/results/cf1.txt";
 
     file.open(filename, ios::trunc|ios::out);
     file.close();
@@ -105,7 +110,7 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     output = ifft(filter_fft*kernel);
     max_response = output.maxCoeff(&(max_index[0]), &(max_index[1]));
     // show_image(output*255, height, width, "output");
-    cv::waitKey(1);
+    // cv::waitKey(1);
 
     kernel_rot = rotation_kernel(sample);
     output_rot = ifft(kernel_rot*filter_rot_fft);
@@ -141,6 +146,18 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     vy = -1.0*((max_index[1]-height/2)/delt_t)*0.86/572.89;
     rotation = (max_indexR[0]-target_dim/2)*rot_resolution;
     wz = (rotation*M_PI/180.0)/delt_t;
+
+    for (int i=0; i<4; i++)
+    {
+        windowx[i] = windowx[i+1];
+        windowy[i] = windowy[i+1];
+    }
+    windowx[4] = vx;
+    windowy[4] = vy;
+    vx = (smooth*windowx).sum();
+    vy = (smooth*windowy).sum();
+    windowx[4] = vx;
+    windowy[4] = vy;
 
     geometry_msgs::TwistStamped vmsg;
     vmsg.header = msg->header;

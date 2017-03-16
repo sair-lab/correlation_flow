@@ -131,6 +131,9 @@ private:
 
     ofstream file;
     double t_prev, t_now;
+    ArrayXf windowx;
+    ArrayXf windowy;
+    ArrayXf smooth;
 
 };
 #endif
