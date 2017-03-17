@@ -39,7 +39,7 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     target_fft = fft(target);
     filter_fft = fft(ArrayXXf::Zero(width, height));
 
-    rot_resolution = 10.0;
+    rot_resolution = 1.0;
     target_dim = 360 / rot_resolution;
     ArrayXXf target_rot = ArrayXXf::Zero(target_dim, 1);
     target_rot(target_dim/2, 0) = 1;
@@ -58,7 +58,7 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
 
     pub = nh.advertise<geometry_msgs::TwistStamped>("corrFlow_velocity", 1000);
 
-    filename = "/home/zh/catkin_ws/src/correlation_flow/script/cf_rotation7.txt";
+    filename = "/home/zh/catkin_ws/src/correlation_flow/results/cf_rotC.txt";
 
     file.open(filename, ios::trunc|ios::out);
     file.close();
@@ -294,7 +294,7 @@ inline ArrayXXcf CorrelationFlow::rotation_kernel(const ArrayXXf& arr0)
 
     for(int i=0; i<target_dim; i++)
     {
-        float diff_square = (arr0 - rot_base.at(i)).square().abs().sum()/N;
+        float diff_square = (arr0 - rot_base.at(i)).square().abs().sum()/N/N;
 
         ker(i, 0) = exp(-1/(sigma*sigma)*diff_square);
     }
@@ -372,10 +372,10 @@ inline void CorrelationFlow::save_file(geometry_msgs::TwistStamped twist, string
 {
     file.open(filename.c_str(), ios::app);
     file<<boost::format("%.9f") % (twist.header.stamp.toSec())<<" "
-        <<twist.twist.linear.x<<" "
-        <<twist.twist.linear.y<<" "
-        <<twist.twist.linear.z<<" "
         <<twist.twist.angular.z<<" "
+        <<0<<" "
+        <<0<<" "
+        <<0<<" "
         <<0<<" "
         <<0<<" "
         <<0<<endl;
