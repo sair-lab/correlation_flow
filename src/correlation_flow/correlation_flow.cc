@@ -26,6 +26,7 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     smooth << 0.05, 0.1, 0.15, 0.2, 0.5;
     windowx = ArrayXf::Zero(5);
     windowy = ArrayXf::Zero(5);
+    window_wz = ArrayXf::Zero(5);
 
     width = 320;
     height = 240;
@@ -37,18 +38,19 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     target_fft = fft(target);
     filter_fft = fft(ArrayXXf::Zero(width, height));
 
-    rot_resolution = 60.0;
+    rot_resolution = 1.0;
     target_dim = 360 / rot_resolution;
     ArrayXXf target_rot = ArrayXXf::Zero(target_dim, 1);
     target_rot(target_dim/2, 0) = 1;
     target_rot_fft = fft(target_rot);
     filter_rot_fft = fft(ArrayXXf::Zero(target_dim, 1));
 
-    max_level = 1.5;
-    scale_factor = 0.5;
-    sca_target_dim = 2*max_level/scale_factor;
+    max_level = 0.1;
+    scale_factor = 0.002;
+    sca_target_dim = 2 * max_level / scale_factor+1;
     ArrayXXf target_sca = ArrayXXf::Zero(sca_target_dim, 1);
-    target_sca(sca_target_dim/2, 0) = 1;
+    target_sca(1, 0) = 1;
+
     target_sca_fft = fft(target_sca);
     filter_sca_fft = fft(ArrayXXf::Zero(sca_target_dim, 1));
 
@@ -56,7 +58,7 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
 
     pub = nh.advertise<geometry_msgs::TwistStamped>("corrFlow_velocity", 1000);
 
-    filename = "/home/jitete/drones/src/correlation_flow/results/cftran5.txt";
+    filename = "/home/zh/catkin_ws/src/correlation_flow/results/cf_rotC.txt";
 
     file.open(filename, ios::trunc|ios::out);
     file.close();
@@ -71,9 +73,6 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     cv::cvtColor(image, image, cv::COLOR_BGR2GRAY);
     imgROI = cv::Rect((image.cols-width)/2, (image.rows-height)/2, width, height);
     cropImg = image(imgROI);
-    // cv::imshow("image", cropImg);
-
-    image.convertTo(sample_cv, CV_32FC1);
     cropImg.convertTo(cropImg, CV_32FC1);
 
     sample = Eigen::Map<ArrayXXf>(&cropImg.at<float>(0,0), width, height)/255.0;
@@ -109,8 +108,6 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     kernel = gaussian_kernel(sample_fft);
     output = ifft(filter_fft*kernel);
     max_response = output.maxCoeff(&(max_index[0]), &(max_index[1]));
-    // show_image(output*255, height, width, "output");
-    // cv::waitKey(1);
 
     kernel_rot = rotation_kernel(sample);
     output_rot = ifft(kernel_rot*filter_rot_fft);
@@ -141,7 +138,9 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     double vx, vy, wz;
     double delt_t;
     double rotation;
+    double altitude = 0.86;
     delt_t = t_now - t_prev;
+
     // for Microsoft camera, use fx=572.44 fy=572.89 z=0.86 facing down
     vx = -1.0*((max_index[0]-width/2)/delt_t)*1.78/605.65;
     vy = -1.0*((max_index[1]-height/2)/delt_t)*1.78/609.22;
@@ -152,13 +151,17 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     {
         windowx[i] = windowx[i+1];
         windowy[i] = windowy[i+1];
+        window_wz[i] = window_wz[i+1];
     }
     windowx[4] = vx;
     windowy[4] = vy;
+    window_wz[4] = wz;
     vx = (smooth*windowx).sum();
     vy = (smooth*windowy).sum();
+    wz = (smooth*window_wz).sum();
     windowx[4] = vx;
     windowy[4] = vy;
+    window_wz[4] = wz;
 
     geometry_msgs::TwistStamped vmsg;
     vmsg.header = msg->header;
@@ -174,11 +177,10 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
 
     timer.toc("callback:");
 
-    ROS_WARN("vx=%f, vy=%f with psr: %f", vx, vy, trans_psr);
+    ROS_WARN("vx=%f, vy=%f m/s with psr: %f", vx, vy, trans_psr);
     // ROS_WARN("x=%f, y=%d with psr: %f", vx, vy, trans_psr);
-    ROS_WARN("angle is %f with psr: %f", wz, rot_psr);
-    ROS_WARN("scaling factor is %f\n", (max_indexS[0]-sca_target_dim/2)*scale_factor+1);
-
+    ROS_WARN("angle rate is %f degree/s with psr: %f", wz, rot_psr);
+    ROS_WARN("index, %d scaling factor is %f\n", max_indexS[0], 1-max_level+max_indexS[0]*scale_factor);
 }
 
 
@@ -267,11 +269,6 @@ inline void CorrelationFlow::rotation_base(const cv::Mat& img)
         img_rot.convertTo(img_rot, CV_32FC1);
         basis = Eigen::Map<ArrayXXf>(&img_rot.at<float>(0,0), width, height)/255.0;
         rot_base.push_back(basis);
-
-        // cv::Mat sss;
-        // img_rot.convertTo(sss, CV_8UC1);
-        // cv::imshow("rotate", sss);
-        // cv::waitKey(0);
     }
 }
 
@@ -284,14 +281,10 @@ inline ArrayXXcf CorrelationFlow::rotation_kernel(const ArrayXXf& arr0)
 
     for(int i=0; i<target_dim; i++)
     {
-        float diff_square = (arr0 - rot_base.at(i)).square().abs().sum()/N;
+        float diff_square = (arr0 - rot_base.at(i)).square().abs().sum()/N/N;
 
         ker(i, 0) = exp(-1/(sigma*sigma)*diff_square);
     }
-
-     // for (int i=11; i<target_dim; i++)
-        // ker(i, 0) = 0.2;
-        // printf("%f ", ker(i,0));
     
     return fft(ker);
 }
@@ -303,19 +296,14 @@ inline void CorrelationFlow::scale_base(const cv::Mat& imgs)
     cv::Mat sca_mat(2, 3, CV_32FC1);
     cv::Mat img_scale;
 
-    for (int i=1; i<=sca_target_dim/2; i++)
+    for (int i = 0; i<sca_target_dim; i++)
     {
-        sca_mat = cv::getRotationMatrix2D(cv::Point(imgs.cols/2, imgs.rows/2), 0, i*scale_factor);
+        sca_mat = cv::getRotationMatrix2D(cv::Point(imgs.cols/2, imgs.rows/2), 0, 1-max_level + i*scale_factor);
         cv::warpAffine(imgs, img_scale, sca_mat, imgs.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT, 127);
         img_scale = img_scale(imgROI);
         img_scale.convertTo(img_scale, CV_32FC1);
         basis_s = Eigen::Map<ArrayXXf>(&img_scale.at<float>(0,0), width, height)/255.0;
         sca_base.push_back(basis_s);
-
-        // cv::Mat sss;
-        // img_scale.convertTo(sss, CV_8UC1);
-        // cv::imshow("scale", sss);
-        // cv::waitKey(0);
     }
 }
 
@@ -326,18 +314,14 @@ inline ArrayXXcf CorrelationFlow::scale_kernel(const ArrayXXf& arr1)
     
     ArrayXXf ker = ArrayXXf::Zero(sca_target_dim, 1);
 
-    for(int i=0; i<sca_target_dim/2; i++)
+    for(int i=0; i<sca_target_dim; i++)
     {
 
-        float diff_square = (arr1 - sca_base.at(i)).square().abs().sum()/N;
+        float diff_square = (arr1 - sca_base.at(i)).square().abs().sum()/N/N;
 
         ker(i, 0) = exp(-1/(sigma*sigma)*diff_square);
 
-        // printf("%f ", ker(i,0));
-        // if ((i+1)%5==0) printf("\n");
-
     }
-    // printf("\n*********\n");
 
     return fft(ker);
 }
@@ -359,10 +343,10 @@ inline void CorrelationFlow::save_file(geometry_msgs::TwistStamped twist, string
 {
     file.open(filename.c_str(), ios::app);
     file<<boost::format("%.9f") % (twist.header.stamp.toSec())<<" "
-        <<twist.twist.linear.x<<" "
-        <<twist.twist.linear.y<<" "
-        <<twist.twist.linear.z<<" "
         <<twist.twist.angular.z<<" "
+        <<0<<" "
+        <<0<<" "
+        <<0<<" "
         <<0<<" "
         <<0<<" "
         <<0<<endl;
