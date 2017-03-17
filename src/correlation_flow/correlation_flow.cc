@@ -37,7 +37,7 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     target_fft = fft(target);
     filter_fft = fft(ArrayXXf::Zero(width, height));
 
-    rot_resolution = 10.0;
+    rot_resolution = 60.0;
     target_dim = 360 / rot_resolution;
     ArrayXXf target_rot = ArrayXXf::Zero(target_dim, 1);
     target_rot(target_dim/2, 0) = 1;
@@ -45,7 +45,7 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     filter_rot_fft = fft(ArrayXXf::Zero(target_dim, 1));
 
     max_level = 1.5;
-    scale_factor = 0.05;
+    scale_factor = 0.5;
     sca_target_dim = 2*max_level/scale_factor;
     ArrayXXf target_sca = ArrayXXf::Zero(sca_target_dim, 1);
     target_sca(sca_target_dim/2, 0) = 1;
@@ -56,7 +56,7 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
 
     pub = nh.advertise<geometry_msgs::TwistStamped>("corrFlow_velocity", 1000);
 
-    filename = "/home/jitete/drones/src/correlation_flow/results/cf1.txt";
+    filename = "/home/jitete/drones/src/correlation_flow/results/cftran5.txt";
 
     file.open(filename, ios::trunc|ios::out);
     file.close();
@@ -142,8 +142,9 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     double delt_t;
     double rotation;
     delt_t = t_now - t_prev;
-    vx = -1.0*((max_index[0]-width/2)/delt_t)*0.86/572.44;
-    vy = -1.0*((max_index[1]-height/2)/delt_t)*0.86/572.89;
+    // for Microsoft camera, use fx=572.44 fy=572.89 z=0.86 facing down
+    vx = -1.0*((max_index[0]-width/2)/delt_t)*1.78/605.65;
+    vy = -1.0*((max_index[1]-height/2)/delt_t)*1.78/609.22;
     rotation = (max_indexR[0]-target_dim/2)*rot_resolution;
     wz = (rotation*M_PI/180.0)/delt_t;
 
