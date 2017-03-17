@@ -28,7 +28,6 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     windowy = ArrayXf::Zero(5);
     window_wz = ArrayXf::Zero(5);
 
-
     width = 320;
     height = 240;
     lamda = 0.1;
@@ -46,11 +45,12 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     target_rot_fft = fft(target_rot);
     filter_rot_fft = fft(ArrayXXf::Zero(target_dim, 1));
 
-    max_level = 0.5;
-    scale_factor = 0.001;
+    max_level = 0.1;
+    scale_factor = 0.002;
     sca_target_dim = 2 * max_level / scale_factor+1;
     ArrayXXf target_sca = ArrayXXf::Zero(sca_target_dim, 1);
-    target_sca(sca_target_dim/2, 0) = 1;
+    target_sca(1, 0) = 1;
+
     target_sca_fft = fft(target_sca);
     filter_sca_fft = fft(ArrayXXf::Zero(sca_target_dim, 1));
 
@@ -73,14 +73,7 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     cv::cvtColor(image, image, cv::COLOR_BGR2GRAY);
     imgROI = cv::Rect((image.cols-width)/2, (image.rows-height)/2, width, height);
     cropImg = image(imgROI);
-    // cv::imshow("image", cropImg);
-    // cv::waitKey(1);
-
-
-    // image.convertTo(sample_cv, CV_32FC1);
     cropImg.convertTo(cropImg, CV_32FC1);
-
-
 
     sample = Eigen::Map<ArrayXXf>(&cropImg.at<float>(0,0), width, height)/255.0;
     sample_fft = fft(sample);
@@ -115,8 +108,6 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     kernel = gaussian_kernel(sample_fft);
     output = ifft(filter_fft*kernel);
     max_response = output.maxCoeff(&(max_index[0]), &(max_index[1]));
-    // show_image(output*255, height, width, "output");
-    // cv::waitKey(1);
 
     kernel_rot = rotation_kernel(sample);
     output_rot = ifft(kernel_rot*filter_rot_fft);
@@ -139,9 +130,9 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     kernel_rot = rotation_kernel(train);
     filter_rot_fft = target_rot_fft/(kernel_rot + lamda);
 
-    // scale_base(image);
-    // kernel_sca = scale_kernel(train);
-    // filter_sca_fft = target_sca_fft/(kernel_sca + lamda);
+    scale_base(image);
+    kernel_sca = scale_kernel(train);
+    filter_sca_fft = target_sca_fft/(kernel_sca + lamda);
 
     // compute vx, vy, vz, wz
     double vx, vy, wz;
@@ -187,8 +178,7 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     ROS_WARN("vx=%f, vy=%f m/s with psr: %f", vx, vy, trans_psr);
     // ROS_WARN("x=%f, y=%d with psr: %f", vx, vy, trans_psr);
     ROS_WARN("angle rate is %f degree/s with psr: %f", wz, rot_psr);
-    ROS_WARN("scaling factor is %f\n", (max_indexS[0]-sca_target_dim/2)*scale_factor+1);
-
+    ROS_WARN("index, %d scaling factor is %f\n", max_indexS[0], 1-max_level+max_indexS[0]*scale_factor);
 }
 
 
@@ -277,11 +267,6 @@ inline void CorrelationFlow::rotation_base(const cv::Mat& img)
         img_rot.convertTo(img_rot, CV_32FC1);
         basis = Eigen::Map<ArrayXXf>(&img_rot.at<float>(0,0), width, height)/255.0;
         rot_base.push_back(basis);
-
-        // cv::Mat sss;
-        // img_rot.convertTo(sss, CV_8UC1);
-        // cv::imshow("rotate", sss);
-        // cv::waitKey(0);
     }
 }
 
@@ -298,10 +283,6 @@ inline ArrayXXcf CorrelationFlow::rotation_kernel(const ArrayXXf& arr0)
 
         ker(i, 0) = exp(-1/(sigma*sigma)*diff_square);
     }
-
-     // for (int i=11; i<target_dim; i++)
-        // ker(i, 0) = 0.2;
-        // printf("%f ", ker(i,0));
     
     return fft(ker);
 }
@@ -318,17 +299,9 @@ inline void CorrelationFlow::scale_base(const cv::Mat& imgs)
         sca_mat = cv::getRotationMatrix2D(cv::Point(imgs.cols/2, imgs.rows/2), 0, 1-max_level + i*scale_factor);
         cv::warpAffine(imgs, img_scale, sca_mat, imgs.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT, 127);
         img_scale = img_scale(imgROI);
-        // cout<<"scale "<<1-max_level + i*scale_factor<<endl;
-        // cv::imshow("scale", img_scale);
-        // cv::waitKey(100);
-
         img_scale.convertTo(img_scale, CV_32FC1);
         basis_s = Eigen::Map<ArrayXXf>(&img_scale.at<float>(0,0), width, height)/255.0;
         sca_base.push_back(basis_s);
-
-        // cv::Mat sss;
-        // img_scale.convertTo(sss, CV_8UC1);
-
     }
 }
 
@@ -346,11 +319,7 @@ inline ArrayXXcf CorrelationFlow::scale_kernel(const ArrayXXf& arr1)
 
         ker(i, 0) = exp(-1/(sigma*sigma)*diff_square);
 
-        // printf("%f ", ker(i,0));
-        // if ((i+1)%5==0) printf("\n");
-
     }
-    // printf("\n*********\n");
 
     return fft(ker);
 }
