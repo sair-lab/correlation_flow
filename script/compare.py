@@ -32,10 +32,11 @@ for i in xrange (len(qx)-1):
 
     # print dt
 
-data2 = np.loadtxt("px_vxvy3.txt", skiprows=2)
+data2 = np.loadtxt("../results/px1.txt", skiprows=2)
 time2 = data2[:,0] - data1[0,0]
 vx_of = data2[:,1]
 vy_of = data2[:,2]
+
 
 data3 = np.loadtxt("cf_rotation7.txt", skiprows=0)
 time3 = data3[:,0] - data1[0,0]
@@ -43,9 +44,9 @@ vx_cf = 0.75*data3[:,1]
 vy_cf = 0.75*data3[:,2]
 wz_cf = data3[:,4]
 
-for i in xrange (4, len(vx_cf)):
-    vx_cf[i] = 0.5*vx_cf[i]+0.2*vx_cf[i-1]+0.15*vx_cf[i-2]+0.10*vx_cf[i-3]+0.05*vx_cf[i-4]
-    vy_cf[i] = 0.5*vy_cf[i]+0.2*vy_cf[i-1]+0.15*vy_cf[i-2]+0.10*vy_cf[i-3]+0.05*vy_cf[i-4]
+# for i in xrange (4, len(vx_cf)):
+#     vx_cf[i] = 0.5*vx_cf[i]+0.2*vx_cf[i-1]+0.15*vx_cf[i-2]+0.10*vx_cf[i-3]+0.05*vx_cf[i-4]
+#     vy_cf[i] = 0.5*vy_cf[i]+0.2*vy_cf[i-1]+0.15*vy_cf[i-2]+0.10*vy_cf[i-3]+0.05*vy_cf[i-4]
 
 
 #data curve smoothing filter
@@ -77,24 +78,24 @@ if __name__ == "__main__":
 #    vy_filt = savitzky_golay(vy_of, 51, 3)
     plt.figure()
 
-    # plt.subplot(211)
-    # plt.plot(time2, vx_of, 'y', label="PX4Flow")
-    # plt.plot(time3, vx_cf, 'b', label="correlation flow")
-    # plt.plot(time1, vx_vicon, c='r', linewidth=2.0, label="ground truth")
-    # plt.xlabel("time[s]")
-    # plt.ylabel("speed[m/s]")
-    # legend = plt.legend(loc='upper right')
-
-    # plt.subplot(212)
-    # plt.plot(time2, vy_of, c='y', label="PX4Flow")
-    # plt.plot(time3, vy_cf, c='b', label="correlation flow")
-    # plt.plot(time1, vy_vicon, c='r', linewidth=2.0, label="ground truth")
-    # plt.xlabel("time[s]")
-    # plt.ylabel("speed[m/s]")
-    # legend = plt.legend(loc='upper right')
-
-    plt.plot(time1[1:], wz_vicon, c='r', linewidth=2.0, label="ground truth")
-    plt.plot(time3, wz_cf, 'b', label="correlation flow")
+    plt.subplot(211)
+    plt.plot(time2, vx_of, 'y', label="PX4Flow")
+    plt.plot(time3, vx_cf, 'b', label="correlation flow")
+    plt.plot(time1, vx_vicon, c='r', linewidth=2.0, label="ground truth")
+    plt.xlabel("time[s]")
+    plt.ylabel("speed[m/s]")
     legend = plt.legend(loc='upper right')
+
+    plt.subplot(212)
+    plt.plot(time2, vy_of, c='y', label="PX4Flow")
+    plt.plot(time3, vy_cf, c='b', label="correlation flow")
+    plt.plot(time1, vy_vicon, c='r', linewidth=2.0, label="ground truth")
+    plt.xlabel("time[s]")
+    plt.ylabel("speed[m/s]")
+    legend = plt.legend(loc='upper right')
+
+    # plt.plot(time1[1:], wz_vicon, c='r', linewidth=2.0, label="ground truth")
+    # plt.plot(time3, wz_cf, 'b', label="correlation flow")
+    # legend = plt.legend(loc='upper right')
 
     plt.show()

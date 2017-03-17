@@ -28,6 +28,7 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     windowy = ArrayXf::Zero(5);
     window_wz = ArrayXf::Zero(5);
 
+
     width = 320;
     height = 240;
     lamda = 0.1;
@@ -38,7 +39,7 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     target_fft = fft(target);
     filter_fft = fft(ArrayXXf::Zero(width, height));
 
-    rot_resolution = 1.0;
+    rot_resolution = 10.0;
     target_dim = 360 / rot_resolution;
     ArrayXXf target_rot = ArrayXXf::Zero(target_dim, 1);
     target_rot(target_dim/2, 0) = 1;

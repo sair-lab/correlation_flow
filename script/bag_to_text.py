@@ -30,8 +30,9 @@ if __name__ == '__main__':
             #     msg.pose.orientation.w)
             # yaw = tf.transformations.euler_from_quaternion(q)[2]
             outtxt.write(str.format("{0:.9f} ", t.to_sec()))
-            outtxt.write(str.format("{0:.9f} ", msg.vel.x))
-            outtxt.write(str.format("{0:.9f} ", msg.vel.y))
+            outtxt.write(str.format("{0:.9f} ", msg.velocity_x))
+            outtxt.write(str.format("{0:.9f} ", msg.velocity_y))
+            # outtxt.write(str.format("{0:.9f} ", yaw))
             outtxt.write('0 ')
             outtxt.write(str.format("{0:.9f} ", msg.pose.orientation.x))
             outtxt.write(str.format("{0:.9f} ", msg.pose.orientation.y))

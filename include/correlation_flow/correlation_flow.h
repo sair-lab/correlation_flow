@@ -131,10 +131,12 @@ private:
 
     ofstream file;
     double t_prev, t_now;
+
     ArrayXf smooth;
     ArrayXf windowx;
     ArrayXf windowy;
     ArrayXf window_wz;
+
 
 };
 #endif
