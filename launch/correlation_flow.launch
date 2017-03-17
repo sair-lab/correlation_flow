@@ -2,7 +2,8 @@
 <launch>
 
     <node pkg="correlation_flow" type="correlation_flow_node" name="correlation_flow_node" output="screen">
-    	<remap from="~/camera/image" to="/camera/rgb/image_color"/>
+    	<!-- <remap from="~/camera/image" to="/camera/rgb/image_color"/> -->
+    	<remap from="~/camera/image" to="/usb_cam/image_raw"/>
   	</node>
 
 </launch>

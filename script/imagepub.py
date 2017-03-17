@@ -8,11 +8,11 @@ import numpy as np
 import scipy
 
 rospy.init_node('VideoPublisher',anonymous=False)
-VideoRaw = rospy.Publisher('/camera/rgb/image_color', Image, queue_size=10)
+VideoRaw = rospy.Publisher('/usb_cam/image_raw', Image, queue_size=10)
 rate = rospy.Rate(50)
 
 
-
+"""
 #publish images from a camera
 #----------------------------
 cam = cv2.VideoCapture(1)
@@ -47,13 +47,13 @@ while not rospy.is_shutdown():
 #        img = cv2.warpAffine(img,M,(360,240))
 #        msg_frame = CvBridge().cv2_to_imgmsg(img, "bgr8")
 
-    M = cv2.getRotationMatrix2D((width/2,height/2), i*(i+1), 1)
+    M = cv2.getRotationMatrix2D((width/2,height/2), 0*(i+1), 1+0.001*i)
     dst = cv2.warpAffine(img,M,(width,height),flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT,  borderValue=(127, 127, 127))
-    dst1 = np.float32(dst)
+    dst1 = np.float32(img)
     # dst1[:,:,0] *= g 
     # dst1[:,:,1] *= g 
     # dst1[:,:,2] *= g 
-    dst = np.uint8(dst1)
+    # img = np.uint8(dst)
     msg_frame = CvBridge().cv2_to_imgmsg(dst, "bgr8")
 
     VideoRaw.publish(msg_frame)
@@ -63,7 +63,7 @@ while not rospy.is_shutdown():
         break
     rate.sleep()
 #-------------------------------------------
-"""
+
 
 cv2.destroyAllWindows()
 

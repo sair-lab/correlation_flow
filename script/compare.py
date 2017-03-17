@@ -6,26 +6,38 @@ import math
 from math import factorial
 import tf
 
-data1 = np.loadtxt("vicon_yaw.txt", skiprows=2)
+data1 = np.loadtxt("vicon_rotation7.txt", skiprows=2)
 time1 = data1[:,0] - data1[0,0]
 vx_vicon = data1[:,1]
 vy_vicon = -1*data1[:,2]
-yaw = data1[:,3]
-wz_vicon = np.zeros(len(yaw)-1)
-for i in xrange (len(yaw)-1):
-    q1 = tf.transformations.quaternion_from_euler(0, 0, yaw[i])
-    q2 = tf.transformations.quaternion_from_euler(0, 0, yaw[i+1])
-    dq = tf.transformations.quaternion_multiply(q1,tf.transformations.quaternion_inverse(q2))
+# yaw = data1[:,3]
+qx = data1[:,4]
+qy = data1[:,5]
+qz = data1[:,6]
+qw = data1[:,7]
+wz_vicon = np.zeros(len(qx)-1)
+for i in xrange (len(qx)-1):
+    # q1 = tf.transformations.quaternion_from_euler(0, 0, yaw[i])
+    # q2 = tf.transformations.quaternion_from_euler(0, 0, yaw[i+1])
+    q1 = (qx[i], qy[i], qz[i], qw[i])
+    q2 = (qx[i+1], qy[i+1], qz[i+1], qw[i+1])
+    dq = tf.transformations.quaternion_multiply(tf.transformations.quaternion_inverse(q2), q1)
     euler = tf.transformations.euler_from_quaternion(dq)
     d_yaw = euler[2]
-    wz_vicon[i] = d_yaw/(time1[i+1]-time1[i])
+    dt = time1[i+1]-time1[i]
+    if dt<0.01:
+        wz_vicon[i] = wz_vicon[i-1]
+    else:
+        wz_vicon[i] = -d_yaw/dt
+
+    # print dt
 
 data2 = np.loadtxt("px_vxvy3.txt", skiprows=2)
 time2 = data2[:,0] - data1[0,0]
 vx_of = data2[:,1]
 vy_of = data2[:,2]
 
-data3 = np.loadtxt("cf_yaw.txt", skiprows=0)
+data3 = np.loadtxt("cf_rotation7.txt", skiprows=0)
 time3 = data3[:,0] - data1[0,0]
 vx_cf = 0.75*data3[:,1]
 vy_cf = 0.75*data3[:,2]
