@@ -38,7 +38,7 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     target_fft = fft(target);
     filter_fft = fft(ArrayXXf::Zero(width, height));
 
-    rot_resolution = 1.0;
+    rot_resolution = 60.0;
     target_dim = 360 / rot_resolution;
     ArrayXXf target_rot = ArrayXXf::Zero(target_dim, 1);
     target_rot(target_dim/2, 0) = 1;
@@ -46,7 +46,7 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     filter_rot_fft = fft(ArrayXXf::Zero(target_dim, 1));
 
     max_level = 0.1;
-    scale_factor = 0.002;
+    scale_factor = 0.05;
     sca_target_dim = 2 * max_level / scale_factor+1;
     ArrayXXf target_sca = ArrayXXf::Zero(sca_target_dim, 1);
     target_sca(1, 0) = 1;
@@ -58,7 +58,7 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
 
     pub = nh.advertise<geometry_msgs::TwistStamped>("corrFlow_velocity", 1000);
 
-    filename = "/home/zh/catkin_ws/src/correlation_flow/results/cf_rotC.txt";
+    filename = "/home/jitete/drones/src/correlation_flow/results/cf1_t.txt";
 
     file.open(filename, ios::trunc|ios::out);
     file.close();
@@ -138,12 +138,13 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     double vx, vy, wz;
     double delt_t;
     double rotation;
-    double altitude = 0.86;
+    // double altitude = 0.86;
     delt_t = t_now - t_prev;
 
     // for Microsoft camera, use fx=572.44 fy=572.89 z=0.86 facing down
-    vx = -1.0*((max_index[0]-width/2)/delt_t)*1.78/605.65;
-    vy = -1.0*((max_index[1]-height/2)/delt_t)*1.78/609.22;
+    // for another camera, use fx=605.65 fy=609.22 z=1.78 facing up
+    vx = -1.0*((max_index[0]-width/2)/delt_t)*0.86/572.44;
+    vy = -1.0*((max_index[1]-height/2)/delt_t)*0.86/572.89;
     rotation = (max_indexR[0]-target_dim/2)*rot_resolution;
     wz = (rotation*M_PI/180.0)/delt_t;
 
@@ -180,7 +181,7 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     ROS_WARN("vx=%f, vy=%f m/s with psr: %f", vx, vy, trans_psr);
     // ROS_WARN("x=%f, y=%d with psr: %f", vx, vy, trans_psr);
     ROS_WARN("angle rate is %f degree/s with psr: %f", wz, rot_psr);
-    ROS_WARN("index, %d scaling factor is %f\n", max_indexS[0], 1-max_level+max_indexS[0]*scale_factor);
+    // ROS_WARN("index, %d scaling factor is %f\n", max_indexS[0], 1-max_level+max_indexS[0]*scale_factor);
 }
 
 
@@ -343,8 +344,8 @@ inline void CorrelationFlow::save_file(geometry_msgs::TwistStamped twist, string
 {
     file.open(filename.c_str(), ios::app);
     file<<boost::format("%.9f") % (twist.header.stamp.toSec())<<" "
-        <<twist.twist.angular.z<<" "
-        <<0<<" "
+        <<twist.twist.linear.x<<" "
+        <<twist.twist.linear.y<<" "
         <<0<<" "
         <<0<<" "
         <<0<<" "

@@ -34,10 +34,14 @@ if __name__ == '__main__':
             outtxt.write(str.format("{0:.9f} ", msg.vel.y))
             # outtxt.write(str.format("{0:.9f} ", yaw))
             outtxt.write('0 ')
-            outtxt.write(str.format("{0:.9f} ", msg.pose.orientation.x))
-            outtxt.write(str.format("{0:.9f} ", msg.pose.orientation.y))
-            outtxt.write(str.format("{0:.9f} ", msg.pose.orientation.z))
-            outtxt.write(str.format("{0:.9f}\n", msg.pose.orientation.w))
+            outtxt.write('0 ')
+            outtxt.write('0 ')
+            outtxt.write('0 ')
+            outtxt.write('0 ')
+            # outtxt.write(str.format("{0:.9f} ", msg.pose.orientation.x))
+            # outtxt.write(str.format("{0:.9f} ", msg.pose.orientation.y))
+            # outtxt.write(str.format("{0:.9f} ", msg.pose.orientation.z))
+            # outtxt.write(str.format("{0:.9f}\n", msg.pose.orientation.w))
 
 # topic = "/px4flow/opt_flow"
 # header ground_distance flow_x flow_y velocity_x velocity_y quality
