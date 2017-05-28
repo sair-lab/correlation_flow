@@ -22,11 +22,11 @@
 string filename;
 CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
 {
-    smooth = ArrayXf(5);
-    smooth << 0.05, 0.1, 0.15, 0.2, 0.5;
-    windowx = ArrayXf::Zero(5);
-    windowy = ArrayXf::Zero(5);
-    window_wz = ArrayXf::Zero(5);
+    lowpass_w = 0.10;
+    vx_prev = 0;
+    vy_prev = 0;
+    distance = 0;
+    distance_prev = 0.3;
 
     width = 320;
     height = 240;
@@ -38,39 +38,54 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     target_fft = fft(target);
     filter_fft = fft(ArrayXXf::Zero(width, height));
 
-    rot_resolution = 60.0;
-    target_dim = 360 / rot_resolution;
-    ArrayXXf target_rot = ArrayXXf::Zero(target_dim, 1);
-    target_rot(target_dim/2, 0) = 1;
-    target_rot_fft = fft(target_rot);
-    filter_rot_fft = fft(ArrayXXf::Zero(target_dim, 1));
+    // rot_resolution = 60.0;
+    // target_dim = 360 / rot_resolution;
+    // ArrayXXf target_rot = ArrayXXf::Zero(target_dim, 1);
+    // target_rot(target_dim/2, 0) = 1;
+    // target_rot_fft = fft(target_rot);
+    // filter_rot_fft = fft(ArrayXXf::Zero(target_dim, 1));
 
-    max_level = 0.1;
-    scale_factor = 0.05;
-    sca_target_dim = 2 * max_level / scale_factor+1;
-    ArrayXXf target_sca = ArrayXXf::Zero(sca_target_dim, 1);
-    target_sca(1, 0) = 1;
-
-    target_sca_fft = fft(target_sca);
-    filter_sca_fft = fft(ArrayXXf::Zero(sca_target_dim, 1));
+    // max_level = 0.1;
+    // scale_factor = 0.05;
+    // sca_target_dim = 2 * max_level / scale_factor+1;
+    // ArrayXXf target_sca = ArrayXXf::Zero(sca_target_dim, 1);
+    // target_sca(1, 0) = 1;
+    // target_sca_fft = fft(target_sca);
+    // filter_sca_fft = fft(ArrayXXf::Zero(sca_target_dim, 1));
 
     initialized = false;
 
     pub = nh.advertise<geometry_msgs::TwistStamped>("corrFlow_velocity", 1000);
 
-    filename = "/home/jitete/drones/src/correlation_flow/results/cf1_t.txt";
+    // filename = "/home/jitete/drones/src/correlation_flow/results/cf1_t.txt";
 
-    file.open(filename, ios::trunc|ios::out);
-    file.close();
+    // file.open(filename, ios::trunc|ios::out);
+    // file.close();
 }
 
+void CorrelationFlow::callback_h(const px_comm::OpticalFlow& msg_h)
+{
+    if (msg_h.ground_distance > 0.3)
+        distance = msg_h.ground_distance;
+    else
+        distance = distance_prev;
+    distance_prev = distance;
+}
+
+// void CorrelationFlow::callback_imu(const sensor_msgs::Imu& msg_imu)
+// {
+//     q.w() = msg_imu.orientation.w;
+//     q.x() = msg_imu.orientation.x;
+//     q.y() = msg_imu.orientation.y;
+//     q.z() = msg_imu.orientation.z;
+// }
 
 void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
 {
     timer.tic();
 
-    image = cv_bridge::toCvCopy(msg, "bgr8")->image;
-    cv::cvtColor(image, image, cv::COLOR_BGR2GRAY);
+    image = cv_bridge::toCvCopy(msg, "mono8")->image;
+    // cv::cvtColor(image, image, cv::COLOR_BGR2GRAY);
     imgROI = cv::Rect((image.cols-width)/2, (image.rows-height)/2, width, height);
     cropImg = image(imgROI);
     cropImg.convertTo(cropImg, CV_32FC1);
@@ -88,13 +103,13 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
         kernel = gaussian_kernel();
         filter_fft = target_fft/(kernel + lamda);
 
-        rotation_base(image);
-        kernel_rot = rotation_kernel(train);
-        filter_rot_fft = target_rot_fft/(kernel_rot + lamda);
+        // rotation_base(image);
+        // kernel_rot = rotation_kernel(train);
+        // filter_rot_fft = target_rot_fft/(kernel_rot + lamda);
 
-        scale_base(image);
-        kernel_sca = scale_kernel(train);
-        filter_sca_fft = target_sca_fft/(kernel_sca + lamda);
+        // scale_base(image);
+        // kernel_sca = scale_kernel(train);
+        // filter_sca_fft = target_sca_fft/(kernel_sca + lamda);
 
         t_prev = t_now;
 
@@ -109,16 +124,16 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     output = ifft(filter_fft*kernel);
     max_response = output.maxCoeff(&(max_index[0]), &(max_index[1]));
 
-    kernel_rot = rotation_kernel(sample);
-    output_rot = ifft(kernel_rot*filter_rot_fft);
-    max_responseR = output_rot.maxCoeff(&(max_indexR[0]), &(max_indexR[1]));
+    // kernel_rot = rotation_kernel(sample);
+    // output_rot = ifft(kernel_rot*filter_rot_fft);
+    // max_responseR = output_rot.maxCoeff(&(max_indexR[0]), &(max_indexR[1]));
 
-    kernel_sca = scale_kernel(sample);
-    output_sca = ifft(kernel_sca*filter_sca_fft);
-    max_responseS = output_sca.maxCoeff(&(max_indexS[0]), &(max_indexS[1]));
+    // kernel_sca = scale_kernel(sample);
+    // output_sca = ifft(kernel_sca*filter_sca_fft);
+    // max_responseS = output_sca.maxCoeff(&(max_indexS[0]), &(max_indexS[1]));
 
     float trans_psr = get_psr(output, max_index[0], max_index[1]);
-    float rot_psr = get_psr(output_rot, max_indexR[0], max_indexR[1]);
+    // float rot_psr = get_psr(output_rot, max_indexR[0], max_indexR[1]);
     
     // update filter
     train = sample;
@@ -126,61 +141,48 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     kernel = gaussian_kernel();
     filter_fft = target_fft/(kernel + lamda);
 
-    rotation_base(image);
-    kernel_rot = rotation_kernel(train);
-    filter_rot_fft = target_rot_fft/(kernel_rot + lamda);
+    // rotation_base(image);
+    // kernel_rot = rotation_kernel(train);
+    // filter_rot_fft = target_rot_fft/(kernel_rot + lamda);
 
-    scale_base(image);
-    kernel_sca = scale_kernel(train);
-    filter_sca_fft = target_sca_fft/(kernel_sca + lamda);
+    // scale_base(image);
+    // kernel_sca = scale_kernel(train);
+    // filter_sca_fft = target_sca_fft/(kernel_sca + lamda);
 
     // compute vx, vy, vz, wz
-    double vx, vy, wz;
+    double vx, vy;
     double delt_t;
-    double rotation;
-    // double altitude = 0.86;
     delt_t = t_now - t_prev;
 
     // for Microsoft camera, use fx=572.44 fy=572.89 z=0.86 facing down
     // for another camera, use fx=605.65 fy=609.22 z=1.78 facing up
-    vx = -1.0*((max_index[0]-width/2)/delt_t)*0.86/572.44;
-    vy = -1.0*((max_index[1]-height/2)/delt_t)*0.86/572.89;
-    rotation = (max_indexR[0]-target_dim/2)*rot_resolution;
-    wz = (rotation*M_PI/180.0)/delt_t;
+    vx = -1.0*((max_index[0]-width/2)/delt_t)*distance/572.44;
+    vy = -1.0*((max_index[1]-height/2)/delt_t)*distance/572.89;
+    // rotation = (max_indexR[0]-target_dim/2)*rot_resolution;
+    // wz = (rotation*M_PI/180.0)/delt_t;
 
-    for (int i=0; i<4; i++)
-    {
-        windowx[i] = windowx[i+1];
-        windowy[i] = windowy[i+1];
-        window_wz[i] = window_wz[i+1];
-    }
-    windowx[4] = vx;
-    windowy[4] = vy;
-    window_wz[4] = wz;
-    vx = (smooth*windowx).sum();
-    vy = (smooth*windowy).sum();
-    wz = (smooth*window_wz).sum();
-    windowx[4] = vx;
-    windowy[4] = vy;
-    window_wz[4] = wz;
+    // low pass filter
+    vx = lowpass_w*vx + (1-lowpass_w)*vx_prev;
+    vy = lowpass_w*vy + (1-lowpass_w)*vy_prev;
 
     geometry_msgs::TwistStamped vmsg;
-    vmsg.header = msg->header;
+    vmsg.header.stamp = ros::Time::now();
     vmsg.twist.linear.x = vx;
     vmsg.twist.linear.y = vy;
     vmsg.twist.linear.z = 0;
-    vmsg.twist.angular.z = wz;
     pub.publish(vmsg);
 
+    vx_prev = vx;
+    vy_prev = vy;
+
     t_prev = t_now;
-    save_file(vmsg, filename);
+    // save_file(vmsg, filename);
 
 
     timer.toc("callback:");
 
     ROS_WARN("vx=%f, vy=%f m/s with psr: %f", vx, vy, trans_psr);
-    // ROS_WARN("x=%f, y=%d with psr: %f", vx, vy, trans_psr);
-    ROS_WARN("angle rate is %f degree/s with psr: %f", wz, rot_psr);
+    // ROS_WARN("angle rate is %f degree/s with psr: %f", wz, rot_psr);
     // ROS_WARN("index, %d scaling factor is %f\n", max_indexS[0], 1-max_level+max_indexS[0]*scale_factor);
 }
 
@@ -253,79 +255,79 @@ inline ArrayXXcf CorrelationFlow::gaussian_kernel(const ArrayXXcf& xf)
 }
 
 
-inline void CorrelationFlow::rotation_base(const cv::Mat& img)
-{
-    rot_base.clear();
-    rot_base.push_back(sample);
-    cv::Mat rot_mat(2, 3, CV_32FC1);
-    cv::Mat img_rot;
-    double angle;
+// inline void CorrelationFlow::rotation_base(const cv::Mat& img)
+// {
+//     rot_base.clear();
+//     rot_base.push_back(sample);
+//     cv::Mat rot_mat(2, 3, CV_32FC1);
+//     cv::Mat img_rot;
+//     double angle;
 
-    for (int i=1; i<target_dim; i++)
-    {
-        angle = i*rot_resolution;
-        rot_mat = cv::getRotationMatrix2D(cv::Point(img.cols/2, img.rows/2), angle, 1.0);
-        cv::warpAffine(img, img_rot, rot_mat, img.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT, 127);
-        img_rot = img_rot(imgROI);
-        img_rot.convertTo(img_rot, CV_32FC1);
-        basis = Eigen::Map<ArrayXXf>(&img_rot.at<float>(0,0), width, height)/255.0;
-        rot_base.push_back(basis);
-    }
-}
+//     for (int i=1; i<target_dim; i++)
+//     {
+//         angle = i*rot_resolution;
+//         rot_mat = cv::getRotationMatrix2D(cv::Point(img.cols/2, img.rows/2), angle, 1.0);
+//         cv::warpAffine(img, img_rot, rot_mat, img.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT, 127);
+//         img_rot = img_rot(imgROI);
+//         img_rot.convertTo(img_rot, CV_32FC1);
+//         basis = Eigen::Map<ArrayXXf>(&img_rot.at<float>(0,0), width, height)/255.0;
+//         rot_base.push_back(basis);
+//     }
+// }
 
 
-inline ArrayXXcf CorrelationFlow::rotation_kernel(const ArrayXXf& arr0)
-{
-    unsigned int N = height * width;
+// inline ArrayXXcf CorrelationFlow::rotation_kernel(const ArrayXXf& arr0)
+// {
+//     unsigned int N = height * width;
     
-    ArrayXXf ker = ArrayXXf::Zero(target_dim, 1);
+//     ArrayXXf ker = ArrayXXf::Zero(target_dim, 1);
 
-    for(int i=0; i<target_dim; i++)
-    {
-        float diff_square = (arr0 - rot_base.at(i)).square().abs().sum()/N/N;
+//     for(int i=0; i<target_dim; i++)
+//     {
+//         float diff_square = (arr0 - rot_base.at(i)).square().abs().sum()/N/N;
 
-        ker(i, 0) = exp(-1/(sigma*sigma)*diff_square);
-    }
+//         ker(i, 0) = exp(-1/(sigma*sigma)*diff_square);
+//     }
     
-    return fft(ker);
-}
+//     return fft(ker);
+// }
 
 
-inline void CorrelationFlow::scale_base(const cv::Mat& imgs)
-{
-    sca_base.clear();
-    cv::Mat sca_mat(2, 3, CV_32FC1);
-    cv::Mat img_scale;
+// inline void CorrelationFlow::scale_base(const cv::Mat& imgs)
+// {
+//     sca_base.clear();
+//     cv::Mat sca_mat(2, 3, CV_32FC1);
+//     cv::Mat img_scale;
 
-    for (int i = 0; i<sca_target_dim; i++)
-    {
-        sca_mat = cv::getRotationMatrix2D(cv::Point(imgs.cols/2, imgs.rows/2), 0, 1-max_level + i*scale_factor);
-        cv::warpAffine(imgs, img_scale, sca_mat, imgs.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT, 127);
-        img_scale = img_scale(imgROI);
-        img_scale.convertTo(img_scale, CV_32FC1);
-        basis_s = Eigen::Map<ArrayXXf>(&img_scale.at<float>(0,0), width, height)/255.0;
-        sca_base.push_back(basis_s);
-    }
-}
+//     for (int i = 0; i<sca_target_dim; i++)
+//     {
+//         sca_mat = cv::getRotationMatrix2D(cv::Point(imgs.cols/2, imgs.rows/2), 0, 1-max_level + i*scale_factor);
+//         cv::warpAffine(imgs, img_scale, sca_mat, imgs.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT, 127);
+//         img_scale = img_scale(imgROI);
+//         img_scale.convertTo(img_scale, CV_32FC1);
+//         basis_s = Eigen::Map<ArrayXXf>(&img_scale.at<float>(0,0), width, height)/255.0;
+//         sca_base.push_back(basis_s);
+//     }
+// }
 
 
-inline ArrayXXcf CorrelationFlow::scale_kernel(const ArrayXXf& arr1)
-{
-    unsigned int N = height * width;
+// inline ArrayXXcf CorrelationFlow::scale_kernel(const ArrayXXf& arr1)
+// {
+//     unsigned int N = height * width;
     
-    ArrayXXf ker = ArrayXXf::Zero(sca_target_dim, 1);
+//     ArrayXXf ker = ArrayXXf::Zero(sca_target_dim, 1);
 
-    for(int i=0; i<sca_target_dim; i++)
-    {
+//     for(int i=0; i<sca_target_dim; i++)
+//     {
 
-        float diff_square = (arr1 - sca_base.at(i)).square().abs().sum()/N/N;
+//         float diff_square = (arr1 - sca_base.at(i)).square().abs().sum()/N/N;
 
-        ker(i, 0) = exp(-1/(sigma*sigma)*diff_square);
+//         ker(i, 0) = exp(-1/(sigma*sigma)*diff_square);
 
-    }
+//     }
 
-    return fft(ker);
-}
+//     return fft(ker);
+// }
 
 
 inline float CorrelationFlow::get_psr(const ArrayXXf& output, ArrayXXf::Index x, ArrayXXf::Index y)
@@ -353,15 +355,3 @@ inline void CorrelationFlow::save_file(geometry_msgs::TwistStamped twist, string
         <<0<<endl;
     file.close();
 }
-
-
-/*
-inline double CorrelationFlow::rotation_estimation(const ArrayXXcf& arr1)
-{
-    kernel_rot = rotation_kernel(arr1);
-
-    output_rot = ifft(kernel_rot*filter_rot_fft);
-
-
-}
-*/
