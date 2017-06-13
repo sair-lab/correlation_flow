@@ -15,7 +15,7 @@ rate = rospy.Rate(50)
 
 #publish images from a camera
 #----------------------------
-cam = cv2.VideoCapture(1)
+cam = cv2.VideoCapture(0)
 while not rospy.is_shutdown():
     meta, frame = cam.read()
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)

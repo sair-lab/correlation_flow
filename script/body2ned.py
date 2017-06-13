@@ -73,7 +73,7 @@ def toNED(msg):
 
 if __name__ == '__main__':
 
-    outtxt = open('/home/jitete/drones/src/correlation_flow/script/cf.txt','w')
+    outtxt = open('/home/ubuntu/drones/src/correlation_flow/script/cf.txt','w')
     outtxt.write('# text file' + '\n# format: time stamp x y z qx qy qz qw\n')
 
     rospy.init_node('bodyToNED')

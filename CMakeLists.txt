@@ -150,6 +150,7 @@ add_dependencies(correlation_flow ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_E
 
 target_link_libraries(correlation_flow
    -lfftw3 -lfftw3f
+   ${OpenCV_LIBS}
 )
 
 ## Declare a C++ executable
@@ -163,6 +164,7 @@ add_dependencies(correlation_flow_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${cat
 target_link_libraries(correlation_flow_node
   correlation_flow
   ${catkin_LIBRARIES}
+  ${OpenCV_LIBS}
 )
 
 #############
