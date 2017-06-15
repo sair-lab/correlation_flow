@@ -156,8 +156,8 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
 
     // for Microsoft camera, use fx=572.44 fy=572.89 z=0.86 facing down
     // for another camera, use fx=605.65 fy=609.22 z=1.78 facing up
-    vx = -1.0*((max_index[0]-width/2)/delt_t)*distance/572.44;
-    vy = -1.0*((max_index[1]-height/2)/delt_t)*distance/572.89;
+    vx = -1.0*((max_index[0]-width/2)/delt_t)*distance/536.83;
+    vy = -1.0*((max_index[1]-height/2)/delt_t)*distance/536.74;
     // rotation = (max_indexR[0]-target_dim/2)*rot_resolution;
     // wz = (rotation*M_PI/180.0)/delt_t;
 
@@ -166,7 +166,7 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     vy = lowpass_w*vy + (1-lowpass_w)*vy_prev;
 
     geometry_msgs::TwistStamped vmsg;
-    vmsg.header.stamp = ros::Time::now();
+    vmsg.header.stamp = h.stamp;
     vmsg.twist.linear.x = vx;
     vmsg.twist.linear.y = vy;
     vmsg.twist.linear.z = 0;

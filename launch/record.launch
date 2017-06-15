@@ -6,21 +6,22 @@
 
     <include file="$(find px4flow)/launch/px4flow.launch"/>
 
-    <include file="$(find myahrs_driver)/launch/myahrs_driver.launch"/>
+<!--    <include file="$(find myahrs_driver)/launch/myahrs_driver.launch"/> -->
 
-    <node pkg="correlation_flow" type="imagepub.py" name="imagepub" />
+<!--    <node pkg="correlation_flow" type="imagepub.py" name="imagepub" /> -->
 
-    <!-- <include file="$(find usb_cam)/launch/usb_cam-test.launch"/> -->
+    <include file="$(find correlation_flow)/launch/camera.launch"/>
 
 
     <node name="datarecord" pkg="rosbag" type="record" 
             args="-o $(find correlation_flow)/bag/flytest 
-                    /camera/rgb/image_color
+                    /image_rect
                     /px4flow/opt_flow
                     /imu/data
                     /vicon_xb_node/viconPoseTopic"/>
-
-<!--     <node pkg="tf" type="static_transform_publisher" name="local_origin_to_imu" 
-        args="0 0 0 0 0 0 local_origin base_imu_link 50" /> -->
+<!--
+    <node pkg="tf" type="static_transform_publisher" name="local_origin_to_imu" 
+        args="0 0 0 0 0 0 local_origin base_imu_link 50" />
+-->
 
 </launch>
