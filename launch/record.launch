@@ -12,10 +12,11 @@
 
     <include file="$(find correlation_flow)/launch/camera.launch"/>
 
+    <include file="$(find correlation_flow)/launch/correlation_flow.launch"/>
 
     <node name="datarecord" pkg="rosbag" type="record" 
             args="-o $(find correlation_flow)/bag/flytest 
-                    /image_rect
+                    /correlation_flow_node/corrFlow_velocity
                     /px4flow/opt_flow
                     /imu/data
                     /vicon_xb_node/viconPoseTopic"/>

@@ -8,7 +8,7 @@ import math
 from math import factorial
 import tf
 
-data1 = np.loadtxt("../results/vicon1.txt", skiprows=2)
+data1 = np.loadtxt("vicon.txt", skiprows=2)
 time1 = data1[:,0] - data1[0,0]
 vx_vicon = data1[:,1]
 vy_vicon = data1[:,2]
@@ -48,14 +48,14 @@ vy_vicon = data1[:,2]
 # outtxt.close()
     # print dt
 
-data2 = np.loadtxt("../results/px1.txt", skiprows=2)
-time2 = data2[:,0] - data1[0,0]
+data2 = np.loadtxt("px4.txt", skiprows=2)
+time2 = data2[:,0] - data2[0,0]
 vx_of = data2[:,1]
 vy_of = data2[:,2]
 
 
-data3 = np.loadtxt("../results/cf1_t.txt", skiprows=0)
-time3 = data3[:,0] - data1[0,0]
+data3 = np.loadtxt("cf.txt", skiprows=0)
+time3 = data3[:,0] - data3[0,0]
 vx_cf = 0.75*data3[:,1]
 vy_cf = 0.75*data3[:,2]
 wz_cf = data3[:,1]

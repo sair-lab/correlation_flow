@@ -61,9 +61,9 @@ def toNED(msg):
                   [2*qx*qz-2*qy*qw  , 2*qy*qz + 2*qx*qw, 1-2*qx*qx-2*qy*qy]])
     vr = dot(Tv, array([v[0],-v[1],0]))
 
-    outtxt.write(str.format("{0:.9f} ", t.to_sec()))
-    outtxt.write(str.format("{0:.9f} ", vr[0]))
-    outtxt.write(str.format("{0:.9f} ", vr[1]))
+    outtxt.write(str.format("{0:.9f} ", msg.header.stamp.to_sec()))
+    outtxt.write(str.format("{0:.9f} ", vx))
+    outtxt.write(str.format("{0:.9f} ", vy))
     outtxt.write('0 ')
     outtxt.write('0 ')
     outtxt.write('0 ')
@@ -73,7 +73,7 @@ def toNED(msg):
 
 if __name__ == '__main__':
 
-    outtxt = open('/home/ubuntu/drones/src/correlation_flow/script/cf.txt','w')
+    outtxt = open('/home/eee/drones/src/correlation_flow/script/cf_3.txt','w')
     outtxt.write('# text file' + '\n# format: time stamp x y z qx qy qz qw\n')
 
     rospy.init_node('bodyToNED')
