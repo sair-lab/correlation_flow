@@ -10,7 +10,9 @@
 
 <!--    <node pkg="correlation_flow" type="imagepub.py" name="imagepub" /> -->
 
-    <include file="$(find correlation_flow)/launch/camera.launch"/>
+<!--    <include file="$(find correlation_flow)/launch/camera.launch"/> -->
+
+    <include file="$(find ueye_cam)/launch/bayer_rggb_image_proc.launch"/>
 
     <include file="$(find correlation_flow)/launch/correlation_flow.launch"/>
 

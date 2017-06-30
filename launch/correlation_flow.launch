@@ -3,7 +3,7 @@
 
     <node pkg="correlation_flow" type="correlation_flow_node" name="correlation_flow_node" output="screen">
 
-    	<remap from="~/camera/image" to="/image_rect"/>
+    	<remap from="~/camera/image" to="/camera/image_mono"/>
     	<!-- <remap from="~/camera/image" to="/usb_cam/image_raw"/> -->
   	</node>
 <!--

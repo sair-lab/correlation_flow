@@ -23,15 +23,15 @@ if __name__ == '__main__':
     outtxt.write('# text file for '+ args.inputbag + '\n# format: time stamp x y z qx qy qz qw\n')
 
     for topic, msg, t in inbag.read_messages():
-        if topic == "/correlation_flow_node/corrFlow_velocity":
+        if topic == "/px4flow/opt_flow":
             # q = (msg.pose.orientation.x,
             #     msg.pose.orientation.y,
             #     msg.pose.orientation.z,
             #     msg.pose.orientation.w)
             # yaw = tf.transformations.euler_from_quaternion(q)[2]
             outtxt.write(str.format("{0:.9f} ", t.to_sec()))
-            outtxt.write(str.format("{0:.9f} ", msg.twist.linear.x))
-            outtxt.write(str.format("{0:.9f} ", msg.twist.linear.y))
+            outtxt.write(str.format("{0:.9f} ", msg.velocity_x))
+            outtxt.write(str.format("{0:.9f} ", msg.velocity_y))
             # outtxt.write(str.format("{0:.9f} ", yaw))
             outtxt.write('0 ')
             outtxt.write('0 ')
@@ -47,6 +47,8 @@ if __name__ == '__main__':
 # header ground_distance flow_x flow_y velocity_x velocity_y quality
 # topic = "/vicon_xb/viconPoseTopic"
 # header pose.position(x, y, z) pose.orientation(x, y, z, w) vel(x, y, z)
+# topic = "/correlation_flow_node/corrFlow_velocity"
+# msg.twist.linear.x msg.twist.linear.y
 
 # use t.to_sec() or msg.header.stamp.to_sec() ???
 
