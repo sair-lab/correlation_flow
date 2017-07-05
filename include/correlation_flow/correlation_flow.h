@@ -76,6 +76,7 @@ private:
     ros::Publisher pub;
 
     int width, height;
+    float focal_x, focal_y;
 
     fftwf_plan fft_plan;
 

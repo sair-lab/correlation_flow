@@ -28,8 +28,12 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     distance = 0;
     distance_prev = 0.3;
 
-    width = 320;
-    height = 240;
+    nh.getParam("image_width", width);
+    nh.getParam("iamge_height", height);
+    nh.getParam("focal_x", focal_x);
+    nh.getParam("focal_y", focal_y);
+    // width = 320;
+    // height = 240;
     lamda = 0.1;
     sigma = 0.2;
 
@@ -156,8 +160,8 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
 
     // for Microsoft camera, use fx=572.44 fy=572.89 z=0.86 facing down
     // for another camera, use fx=605.65 fy=609.22 z=1.78 facing up
-    vx = -1.0*((max_index[0]-width/2)/delt_t)*distance/536.83;
-    vy = -1.0*((max_index[1]-height/2)/delt_t)*distance/536.74;
+    vx = -1.0*((max_index[0]-width/2)/delt_t)*distance/focal_x;
+    vy = -1.0*((max_index[1]-height/2)/delt_t)*distance/focal_y;
     // rotation = (max_indexR[0]-target_dim/2)*rot_resolution;
     // wz = (rotation*M_PI/180.0)/delt_t;
 
