@@ -29,7 +29,7 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     distance_prev = 0.3;
 
     nh.getParam("image_width", width);
-    nh.getParam("iamge_height", height);
+    nh.getParam("image_height", height);
     nh.getParam("focal_x", focal_x);
     nh.getParam("focal_y", focal_y);
     // width = 320;
