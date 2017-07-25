@@ -29,9 +29,9 @@
 #include <fftw3.h>
 #include "common/timer.h"
 #include "common/debug.h"
-#include <px_comm/OpticalFlow.h>
 #include <sensor_msgs/Imu.h>
 #include <Eigen/Geometry>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
 using namespace std;
 using namespace Eigen;
 
@@ -45,7 +45,7 @@ public:
 
     void callback(const sensor_msgs::ImageConstPtr&);
 
-    void callback_h(const px_comm::OpticalFlow&);
+    void callback_h(const geometry_msgs::PoseWithCovarianceStamped&);
 
 private:
 

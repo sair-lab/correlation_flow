@@ -17,7 +17,6 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   sensor_msgs
-  px_comm
 )
 
 find_package(OpenCV REQUIRED)

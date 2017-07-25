@@ -67,10 +67,10 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     // file.close();
 }
 
-void CorrelationFlow::callback_h(const px_comm::OpticalFlow& msg_h)
+void CorrelationFlow::callback_h(const geometry_msgs::PoseWithCovarianceStamped& msg_h)
 {
-    if (msg_h.ground_distance > 0.3)
-        distance = msg_h.ground_distance;
+    if (msg_h.pose.pose.position.z > 0.3)
+        distance = msg_h.pose.pose.position.z;
     else
         distance = distance_prev;
     distance_prev = distance;
