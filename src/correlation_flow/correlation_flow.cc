@@ -27,7 +27,7 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     vy_prev = 0;
 
     nh.getParam("image_width", width);
-    nh.getParam("image_heigh", height);
+    nh.getParam("image_height", height);
     nh.getParam("focal_x", focal_x);
     nh.getParam("focal_y", focal_y);
     // width = 320;
@@ -57,7 +57,7 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
 
     initialized = false;
 
-    pub = nh.advertise<geometry_msgs::TwistStamped>("corr_flow", 1000);
+    pub = nh.advertise<geometry_msgs::TwistStamped>("/corr_flow", 1000);
 
     // filename = "/home/jitete/drones/src/correlation_flow/results/cf1_t.txt";
 
