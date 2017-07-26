@@ -25,11 +25,9 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     lowpass_w = 0.10;
     vx_prev = 0;
     vy_prev = 0;
-    distance = 0;
-    distance_prev = 0.3;
 
     nh.getParam("image_width", width);
-    nh.getParam("image_height", height);
+    nh.getParam("image_heigh", height);
     nh.getParam("focal_x", focal_x);
     nh.getParam("focal_y", focal_y);
     // width = 320;
@@ -59,21 +57,12 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
 
     initialized = false;
 
-    pub = nh.advertise<geometry_msgs::TwistStamped>("corrFlow_velocity", 1000);
+    pub = nh.advertise<geometry_msgs::TwistStamped>("corr_flow", 1000);
 
     // filename = "/home/jitete/drones/src/correlation_flow/results/cf1_t.txt";
 
     // file.open(filename, ios::trunc|ios::out);
     // file.close();
-}
-
-void CorrelationFlow::callback_h(const geometry_msgs::PoseWithCovarianceStamped& msg_h)
-{
-    if (msg_h.pose.pose.position.z > 0.3)
-        distance = msg_h.pose.pose.position.z;
-    else
-        distance = distance_prev;
-    distance_prev = distance;
 }
 
 // void CorrelationFlow::callback_imu(const sensor_msgs::Imu& msg_imu)
@@ -186,7 +175,7 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
 
     timer.toc("callback:");
 
-    ROS_WARN("vx=%f, vy=%f m/s with psr: %f", vx, vy, trans_psr);
+    ROS_WARN("fx=%f, fy=%f m/s with psr: %f", vx, vy, trans_psr);
     // ROS_WARN("angle rate is %f degree/s with psr: %f", wz, rot_psr);
     // ROS_WARN("index, %d scaling factor is %f\n", max_indexS[0], 1-max_level+max_indexS[0]*scale_factor);
 }
