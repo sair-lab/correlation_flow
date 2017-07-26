@@ -29,7 +29,6 @@
 #include <fftw3.h>
 #include "common/timer.h"
 #include "common/debug.h"
-#include <px_comm/OpticalFlow.h>
 #include <sensor_msgs/Imu.h>
 #include <Eigen/Geometry>
 using namespace std;
@@ -44,8 +43,6 @@ public:
     CorrelationFlow(ros::NodeHandle);
 
     void callback(const sensor_msgs::ImageConstPtr&);
-
-    void callback_h(const px_comm::OpticalFlow&);
 
 private:
 
@@ -140,7 +137,6 @@ private:
 
     double lowpass_w;
     double vx_prev, vy_prev;
-    double distance;
-    double distance_prev;
+
 };
 #endif

@@ -32,8 +32,6 @@ int main(int argc, char** argv)
   	
   	image_transport::Subscriber sub = it.subscribe("camera/image", 1, &CorrelationFlow::callback, &cf);
 
-  	ros::Subscriber sub_h = nh.subscribe("/px4flow/opt_flow", 1, &CorrelationFlow::callback_h, &cf);
-
     ros::spin();
 
     return 0;
