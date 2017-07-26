@@ -160,8 +160,9 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
 
     // for Microsoft camera, use fx=572.44 fy=572.89 z=0.86 facing down
     // for another camera, use fx=605.65 fy=609.22 z=1.78 facing up
-    vx = -1.0*((max_index[0]-width/2)/delt_t)*distance/focal_x;
-    vy = -1.0*((max_index[1]-height/2)/delt_t)*distance/focal_y;
+	vx = -1.0*((max_index[0]-width/2)/delt_t)/focal_x;
+	vy = -1.0*((max_index[1]-height/2)/delt_t)/focal_y;
+    
     // rotation = (max_indexR[0]-target_dim/2)*rot_resolution;
     // wz = (rotation*M_PI/180.0)/delt_t;
 
