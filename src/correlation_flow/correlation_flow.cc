@@ -57,7 +57,8 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
 
     initialized = false;
 
-    pub = nh.advertise<geometry_msgs::TwistStamped>("/mavros/vision_speed/speed_twist", 1000);
+    pub = nh.advertise<geometry_msgs::TwistStamped>("/vision_speed/speed_twist", 1000);
+    pub_v3 = nh.advertise<geometry_msgs::Vector3Stamped>("/vision_speed/speed_vector", 1000);
 
     // filename = "/home/jitete/drones/src/correlation_flow/results/cf1_t.txt";
 
@@ -165,6 +166,13 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     vmsg.twist.linear.y = vy;
     vmsg.twist.linear.z = 0;
     pub.publish(vmsg);
+
+    geometry_msgs::Vector3Stamped v3msg;
+    v3msg.header.stamp = h.stamp;
+    v3msg.vector.x = vx;
+    v3msg.vector.y = vy;
+    v3msg.vector.z = 0;
+    pub_v3.publish(v3msg);
 
     vx_prev = vx;
     vy_prev = vy;
