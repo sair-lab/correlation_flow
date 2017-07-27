@@ -6,10 +6,11 @@
     	<!-- <remap from="~/camera/image" to="/camera/image_mono"/> -->
     	<remap from="~/camera/image" to="/camera/image_raw"/>
 
-    	<param name="image_width" type="int" value="160"/>
-    	<param name="image_height" type="int" value="120"/>
+    	<param name="image_width" type="int" value="320"/>
+    	<param name="image_height" type="int" value="240"/>
     	<param name="focal_x" type="double" value="531.20"/>
     	<param name="focal_y" type="double" value="531.78"/>
+    	<param name="lowpass_w" type="double" value="0.5"/>
 
   	</node>
 

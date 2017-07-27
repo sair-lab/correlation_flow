@@ -22,7 +22,6 @@
 string filename;
 CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
 {
-    lowpass_w = 0.10;
     vx_prev = 0;
     vy_prev = 0;
 
@@ -30,6 +29,8 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     nh.getParam("image_height", height);
     nh.getParam("focal_x", focal_x);
     nh.getParam("focal_y", focal_y);
+    nh.getParam("lowpass_w", lowpass_w);
+
     // width = 320;
     // height = 240;
     lamda = 0.1;
