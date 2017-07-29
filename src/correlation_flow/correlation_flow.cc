@@ -25,8 +25,6 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     lowpass_w = 0.10;
     vx_prev = 0;
     vy_prev = 0;
-    distance = 0;
-    distance_prev = 0.3;
 
     nh.getParam("image_width", width);
     nh.getParam("image_height", height);
@@ -59,7 +57,8 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
 
     initialized = false;
 
-    pub = nh.advertise<geometry_msgs::TwistStamped>("corrFlow_velocity", 1000);
+    pub = nh.advertise<geometry_msgs::TwistStamped>("/vision_speed/speed_twist", 1000);
+    pub_v3 = nh.advertise<geometry_msgs::Vector3Stamped>("/vision_speed/speed_vector", 1000);
 
     // filename = "/home/jitete/drones/src/correlation_flow/results/cf1_t.txt";
 
@@ -67,14 +66,6 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     // file.close();
 }
 
-void CorrelationFlow::callback_h(const px_comm::OpticalFlow& msg_h)
-{
-    if (msg_h.ground_distance > 0.3)
-        distance = msg_h.ground_distance;
-    else
-        distance = distance_prev;
-    distance_prev = distance;
-}
 
 // void CorrelationFlow::callback_imu(const sensor_msgs::Imu& msg_imu)
 // {
@@ -160,8 +151,8 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
 
     // for Microsoft camera, use fx=572.44 fy=572.89 z=0.86 facing down
     // for another camera, use fx=605.65 fy=609.22 z=1.78 facing up
-    vx = -1.0*((max_index[0]-width/2)/delt_t)*distance/focal_x;
-    vy = -1.0*((max_index[1]-height/2)/delt_t)*distance/focal_y;
+    vx = -1.0*((max_index[0]-width/2)/delt_t)/focal_x;
+    vy = -1.0*((max_index[1]-height/2)/delt_t)/focal_y;
     // rotation = (max_indexR[0]-target_dim/2)*rot_resolution;
     // wz = (rotation*M_PI/180.0)/delt_t;
 
@@ -175,6 +166,13 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     vmsg.twist.linear.y = vy;
     vmsg.twist.linear.z = 0;
     pub.publish(vmsg);
+
+    geometry_msgs::Vector3Stamped v3msg;
+    v3msg.header.stamp = h.stamp;
+    v3msg.vector.x = vx;
+    v3msg.vector.y = vy;
+    v3msg.vector.z = 0;
+    pub_v3.publish(v3msg);
 
     vx_prev = vx;
     vy_prev = vy;

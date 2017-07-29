@@ -21,6 +21,7 @@
 #include <fstream>
 #include <ros/ros.h>
 #include <geometry_msgs/TwistStamped.h>
+#include <geometry_msgs/Vector3Stamped.h>
 #include <image_transport/image_transport.h>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -29,7 +30,6 @@
 #include <fftw3.h>
 #include "common/timer.h"
 #include "common/debug.h"
-#include <px_comm/OpticalFlow.h>
 #include <sensor_msgs/Imu.h>
 #include <Eigen/Geometry>
 using namespace std;
@@ -44,8 +44,6 @@ public:
     CorrelationFlow(ros::NodeHandle);
 
     void callback(const sensor_msgs::ImageConstPtr&);
-
-    void callback_h(const px_comm::OpticalFlow&);
 
 private:
 
@@ -74,6 +72,7 @@ private:
 
     ros::NodeHandle nh;
     ros::Publisher pub;
+    ros::Publisher pub_v3;
 
     int width, height;
     float focal_x, focal_y;
@@ -140,7 +139,6 @@ private:
 
     double lowpass_w;
     double vx_prev, vy_prev;
-    double distance;
-    double distance_prev;
+
 };
 #endif

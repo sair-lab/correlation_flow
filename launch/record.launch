@@ -18,7 +18,7 @@
 
     <node name="datarecord" pkg="rosbag" type="record" 
             args="-o $(find correlation_flow)/bag/flytest 
-                    /correlation_flow_node/corrFlow_velocity
+                    /mavros/vision_speed/speed_twist
                     /px4flow/opt_flow
                     /imu/data
                     /vicon_xb_node/viconPoseTopic"/>
