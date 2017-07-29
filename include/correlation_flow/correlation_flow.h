@@ -32,6 +32,7 @@
 #include "common/debug.h"
 #include <sensor_msgs/Imu.h>
 #include <Eigen/Geometry>
+#include <eigen_conversions/eigen_msg.h>
 using namespace std;
 using namespace Eigen;
 
@@ -55,24 +56,26 @@ private:
 
     inline ArrayXXcf gaussian_kernel(const ArrayXXcf&);
 
-    inline void rotation_base(const cv::Mat&);
+    // inline void rotation_base(const cv::Mat&);
 
-    inline ArrayXXcf rotation_kernel(const ArrayXXf&);
+    // inline ArrayXXcf rotation_kernel(const ArrayXXf&);
 
-    inline void scale_base(const cv::Mat&);
+    // inline void scale_base(const cv::Mat&);
 
-    inline ArrayXXcf scale_kernel(const ArrayXXf&);
+    // inline ArrayXXcf scale_kernel(const ArrayXXf&);
 
     inline float get_psr(const ArrayXXf&, ArrayXXf::Index, ArrayXXf::Index);
 
-    inline void save_file(geometry_msgs::TwistStamped, string);
+    // inline void save_file(geometry_msgs::TwistStamped, string);
+
+    inline void publish(const std_msgs::Header);
 
 
 private:
 
     ros::NodeHandle nh;
-    ros::Publisher pub;
-    ros::Publisher pub_v3;
+    ros::Publisher pub_twist;
+    ros::Publisher pub_vector;
 
     int width, height;
     float focal_x, focal_y;
@@ -107,38 +110,32 @@ private:
     ArrayXXf  xxyy;
 
     bool initialized;
+    Jeffsan::Timer timer;
+    double ros_time, lowpass_weight;
+    Vector3d velocity;
 
     // float max_rotation;
-    float rot_resolution;
-    int target_dim;
-    ArrayXXcf target_rot_fft;
-    ArrayXXcf filter_rot_fft;
-    ArrayXXcf kernel_rot;
-    ArrayXXf  basis;
-    std::vector<ArrayXXf> rot_base;
-    ArrayXXf output_rot;
-    ArrayXXf::Index max_indexR[2];
-    float max_responseR;
+    // float rot_resolution;
+    // int target_dim;
+    // ArrayXXcf target_rot_fft;
+    // ArrayXXcf filter_rot_fft;
+    // ArrayXXcf kernel_rot;
+    // ArrayXXf  basis;
+    // std::vector<ArrayXXf> rot_base;
+    // ArrayXXf output_rot;
+    // ArrayXXf::Index max_indexR[2];
+    // float max_responseR;
 
-    float max_level;
-    float scale_factor;
-    int sca_target_dim;
-    ArrayXXcf target_sca_fft;
-    ArrayXXcf filter_sca_fft;
-    ArrayXXcf kernel_sca;
-    ArrayXXf  basis_s;
-    std::vector<ArrayXXf> sca_base;
-    ArrayXXf output_sca;
-    ArrayXXf::Index max_indexS[2];
-    float max_responseS;
-
-    Jeffsan::Timer timer;
-
-    ofstream file;
-    double t_prev, t_now;
-
-    double lowpass_w;
-    double vx_prev, vy_prev;
-
+    // float max_level;
+    // float scale_factor;
+    // int sca_target_dim;
+    // ArrayXXcf target_sca_fft;
+    // ArrayXXcf filter_sca_fft;
+    // ArrayXXcf kernel_sca;
+    // ArrayXXf  basis_s;
+    // std::vector<ArrayXXf> sca_base;
+    // ArrayXXf output_sca;
+    // ArrayXXf::Index max_indexS[2];
+    // float max_responseS; 
 };
 #endif

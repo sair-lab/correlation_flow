@@ -19,19 +19,17 @@
 #include <ros/ros.h>
 #include "correlation_flow/correlation_flow.h"
 
-string filename;
+
 CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
 {
-    lowpass_w = 0.10;
-    vx_prev = 0;
-    vy_prev = 0;
-
     nh.getParam("image_width", width);
     nh.getParam("image_height", height);
     nh.getParam("focal_x", focal_x);
     nh.getParam("focal_y", focal_y);
-    // width = 320;
-    // height = 240;
+
+    velocity = Vector3d::Zero();
+    lowpass_weight = 0.10;
+
     lamda = 0.1;
     sigma = 0.2;
 
@@ -40,47 +38,18 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     target_fft = fft(target);
     filter_fft = fft(ArrayXXf::Zero(width, height));
 
-    // rot_resolution = 60.0;
-    // target_dim = 360 / rot_resolution;
-    // ArrayXXf target_rot = ArrayXXf::Zero(target_dim, 1);
-    // target_rot(target_dim/2, 0) = 1;
-    // target_rot_fft = fft(target_rot);
-    // filter_rot_fft = fft(ArrayXXf::Zero(target_dim, 1));
-
-    // max_level = 0.1;
-    // scale_factor = 0.05;
-    // sca_target_dim = 2 * max_level / scale_factor+1;
-    // ArrayXXf target_sca = ArrayXXf::Zero(sca_target_dim, 1);
-    // target_sca(1, 0) = 1;
-    // target_sca_fft = fft(target_sca);
-    // filter_sca_fft = fft(ArrayXXf::Zero(sca_target_dim, 1));
-
     initialized = false;
 
-    pub = nh.advertise<geometry_msgs::TwistStamped>("/vision_speed/speed_twist", 1000);
-    pub_v3 = nh.advertise<geometry_msgs::Vector3Stamped>("/vision_speed/speed_vector", 1000);
-
-    // filename = "/home/jitete/drones/src/correlation_flow/results/cf1_t.txt";
-
-    // file.open(filename, ios::trunc|ios::out);
-    // file.close();
+    pub_twist = nh.advertise<geometry_msgs::TwistStamped>("vision_speed/speed_twist", 1000);
+    pub_vector = nh.advertise<geometry_msgs::Vector3Stamped>("vision_speed/speed_vector", 1000);
 }
 
-
-// void CorrelationFlow::callback_imu(const sensor_msgs::Imu& msg_imu)
-// {
-//     q.w() = msg_imu.orientation.w;
-//     q.x() = msg_imu.orientation.x;
-//     q.y() = msg_imu.orientation.y;
-//     q.z() = msg_imu.orientation.z;
-// }
 
 void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
 {
     timer.tic();
 
     image = cv_bridge::toCvCopy(msg, "mono8")->image;
-    // cv::cvtColor(image, image, cv::COLOR_BGR2GRAY);
     imgROI = cv::Rect((image.cols-width)/2, (image.rows-height)/2, width, height);
     cropImg = image(imgROI);
     cropImg.convertTo(cropImg, CV_32FC1);
@@ -88,29 +57,15 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     sample = Eigen::Map<ArrayXXf>(&cropImg.at<float>(0,0), width, height)/255.0;
     sample_fft = fft(sample);
 
-    std_msgs::Header h = msg->header;
-    t_now = h.stamp.toSec();
-
     if (initialized == false)
     {   
         train = sample;
         train_fft = sample_fft;
         kernel = gaussian_kernel();
         filter_fft = target_fft/(kernel + lamda);
-
-        // rotation_base(image);
-        // kernel_rot = rotation_kernel(train);
-        // filter_rot_fft = target_rot_fft/(kernel_rot + lamda);
-
-        // scale_base(image);
-        // kernel_sca = scale_kernel(train);
-        // filter_sca_fft = target_sca_fft/(kernel_sca + lamda);
-
-        t_prev = t_now;
-
         initialized = true;
+        ros_time = msg->header.stamp.toSec();
         printf("initialized.\n");
-
         return;
     }
 
@@ -118,17 +73,7 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     kernel = gaussian_kernel(sample_fft);
     output = ifft(filter_fft*kernel);
     max_response = output.maxCoeff(&(max_index[0]), &(max_index[1]));
-
-    // kernel_rot = rotation_kernel(sample);
-    // output_rot = ifft(kernel_rot*filter_rot_fft);
-    // max_responseR = output_rot.maxCoeff(&(max_indexR[0]), &(max_indexR[1]));
-
-    // kernel_sca = scale_kernel(sample);
-    // output_sca = ifft(kernel_sca*filter_sca_fft);
-    // max_responseS = output_sca.maxCoeff(&(max_indexS[0]), &(max_indexS[1]));
-
     float trans_psr = get_psr(output, max_index[0], max_index[1]);
-    // float rot_psr = get_psr(output_rot, max_indexR[0], max_indexR[1]);
     
     // update filter
     train = sample;
@@ -136,57 +81,36 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     kernel = gaussian_kernel();
     filter_fft = target_fft/(kernel + lamda);
 
-    // rotation_base(image);
-    // kernel_rot = rotation_kernel(train);
-    // filter_rot_fft = target_rot_fft/(kernel_rot + lamda);
-
-    // scale_base(image);
-    // kernel_sca = scale_kernel(train);
-    // filter_sca_fft = target_sca_fft/(kernel_sca + lamda);
-
-    // compute vx, vy, vz, wz
-    double vx, vy;
-    double delt_t;
-    delt_t = t_now - t_prev;
-
-    // for Microsoft camera, use fx=572.44 fy=572.89 z=0.86 facing down
-    // for another camera, use fx=605.65 fy=609.22 z=1.78 facing up
-    vx = -1.0*((max_index[0]-width/2)/delt_t)/focal_x;
-    vy = -1.0*((max_index[1]-height/2)/delt_t)/focal_y;
+    // veclocity calculation
+    double dt = msg->header.stamp.toSec() - ros_time;
+    Vector3d v = Vector3d(-1.0*((max_index[0]-width/2)/dt)/focal_x, -1.0*((max_index[1]-height/2)/dt)/focal_y, 0);
+    velocity = lowpass_weight * v + (1-lowpass_weight) * velocity; // low pass filter
     // rotation = (max_indexR[0]-target_dim/2)*rot_resolution;
-    // wz = (rotation*M_PI/180.0)/delt_t;
+    // wz = (rotation*M_PI/180.0)/dt;
 
-    // low pass filter
-    vx = lowpass_w*vx + (1-lowpass_w)*vx_prev;
-    vy = lowpass_w*vy + (1-lowpass_w)*vy_prev;
+    publish(msg->header);
 
-    geometry_msgs::TwistStamped vmsg;
-    vmsg.header.stamp = h.stamp;
-    vmsg.twist.linear.x = vx;
-    vmsg.twist.linear.y = vy;
-    vmsg.twist.linear.z = 0;
-    pub.publish(vmsg);
-
-    geometry_msgs::Vector3Stamped v3msg;
-    v3msg.header.stamp = h.stamp;
-    v3msg.vector.x = vx;
-    v3msg.vector.y = vy;
-    v3msg.vector.z = 0;
-    pub_v3.publish(v3msg);
-
-    vx_prev = vx;
-    vy_prev = vy;
-
-    t_prev = t_now;
-    // save_file(vmsg, filename);
-
-
+    ros_time = msg->header.stamp.toSec();
     timer.toc("callback:");
-
-    ROS_WARN("vx=%f, vy=%f m/s with psr: %f", vx, vy, trans_psr);
+    ROS_WARN("vx=%f, vy=%f m/s with psr: %f", velocity(0), velocity(1), trans_psr);
     // ROS_WARN("angle rate is %f degree/s with psr: %f", wz, rot_psr);
     // ROS_WARN("index, %d scaling factor is %f\n", max_indexS[0], 1-max_level+max_indexS[0]*scale_factor);
 }
+
+
+inline void CorrelationFlow::publish(const std_msgs::Header header)
+{
+    geometry_msgs::TwistStamped twist;
+    twist.header.stamp = header.stamp;
+    tf::vectorEigenToMsg(velocity, twist.twist.linear);
+    pub_twist.publish(twist);
+
+    geometry_msgs::Vector3Stamped vector;
+    vector.header.stamp = header.stamp;
+    tf::vectorEigenToMsg(velocity, vector.vector);
+    pub_vector.publish(vector);
+}
+
 
 
 inline ArrayXXcf CorrelationFlow::fft(const ArrayXXf& x)
@@ -256,6 +180,32 @@ inline ArrayXXcf CorrelationFlow::gaussian_kernel(const ArrayXXcf& xf)
     return fft((-1/(sigma*sigma)*xxyy).exp());
 }
 
+
+inline float CorrelationFlow::get_psr(const ArrayXXf& output, ArrayXXf::Index x, ArrayXXf::Index y)
+{
+    float max_output = output(x, y);
+
+    float side_lobe_mean = (output.sum()-max_output)/(output.size()-1);
+
+    float std  = sqrt((output-side_lobe_mean).square().mean());
+
+    return (max_response - side_lobe_mean)/std;
+}
+
+
+// inline void CorrelationFlow::save_file(geometry_msgs::TwistStamped twist, string filename)
+// {
+//     file.open(filename.c_str(), ios::app);
+//     file<<boost::format("%.9f") % (twist.header.stamp.toSec())<<" "
+//         <<twist.twist.linear.x<<" "
+//         <<twist.twist.linear.y<<" "
+//         <<0<<" "
+//         <<0<<" "
+//         <<0<<" "
+//         <<0<<" "
+//         <<0<<endl;
+//     file.close();
+// }
 
 // inline void CorrelationFlow::rotation_base(const cv::Mat& img)
 // {
@@ -332,28 +282,3 @@ inline ArrayXXcf CorrelationFlow::gaussian_kernel(const ArrayXXcf& xf)
 // }
 
 
-inline float CorrelationFlow::get_psr(const ArrayXXf& output, ArrayXXf::Index x, ArrayXXf::Index y)
-{
-    float max_output = output(x, y);
-
-    float side_lobe_mean = (output.sum()-max_output)/(output.size()-1);
-
-    float std  = sqrt((output-side_lobe_mean).square().mean());
-
-    return (max_response - side_lobe_mean)/std;
-}
-
-
-inline void CorrelationFlow::save_file(geometry_msgs::TwistStamped twist, string filename)
-{
-    file.open(filename.c_str(), ios::app);
-    file<<boost::format("%.9f") % (twist.header.stamp.toSec())<<" "
-        <<twist.twist.linear.x<<" "
-        <<twist.twist.linear.y<<" "
-        <<0<<" "
-        <<0<<" "
-        <<0<<" "
-        <<0<<" "
-        <<0<<endl;
-    file.close();
-}
