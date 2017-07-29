@@ -8,22 +8,23 @@ import numpy as np
 import scipy
 
 rospy.init_node('VideoPublisher',anonymous=False)
-VideoRaw = rospy.Publisher('/usb_cam/image_raw', Image, queue_size=10)
+VideoRaw = rospy.Publisher('/camera/rgb/image_color', Image, queue_size=10)
 rate = rospy.Rate(50)
 
 
-"""
+
 #publish images from a camera
 #----------------------------
-cam = cv2.VideoCapture(1)
+cam = cv2.VideoCapture(0)
 while not rospy.is_shutdown():
     meta, frame = cam.read()
-    msg_frame = CvBridge().cv2_to_imgmsg(frame, "bgr8")
+    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    msg_frame = CvBridge().cv2_to_imgmsg(frame, "mono8")
     msg_frame.header.stamp = rospy.Time.now()
     VideoRaw.publish(msg_frame)
-    cv2.imshow('frame', frame)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+    # cv2.imshow('frame', frame)
+    # if cv2.waitKey(1) & 0xFF == ord('q'):
+        # break
     rate.sleep()
 cam.release()
 #----------------------------
@@ -63,7 +64,7 @@ while not rospy.is_shutdown():
         break
     rate.sleep()
 #-------------------------------------------
-
+"""
 
 cv2.destroyAllWindows()
 

@@ -29,6 +29,9 @@
 #include <fftw3.h>
 #include "common/timer.h"
 #include "common/debug.h"
+#include <px_comm/OpticalFlow.h>
+#include <sensor_msgs/Imu.h>
+#include <Eigen/Geometry>
 using namespace std;
 using namespace Eigen;
 
@@ -41,6 +44,8 @@ public:
     CorrelationFlow(ros::NodeHandle);
 
     void callback(const sensor_msgs::ImageConstPtr&);
+
+    void callback_h(const px_comm::OpticalFlow&);
 
 private:
 
@@ -71,6 +76,7 @@ private:
     ros::Publisher pub;
 
     int width, height;
+    float focal_x, focal_y;
 
     fftwf_plan fft_plan;
 
@@ -132,11 +138,9 @@ private:
     ofstream file;
     double t_prev, t_now;
 
-    ArrayXf smooth;
-    ArrayXf windowx;
-    ArrayXf windowy;
-    ArrayXf window_wz;
-
-
+    double lowpass_w;
+    double vx_prev, vy_prev;
+    double distance;
+    double distance_prev;
 };
 #endif

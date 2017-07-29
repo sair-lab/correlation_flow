@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+
+<launch>
+
+    <include file="$(find ueye_cam)/launch/bayer_rggb_image_proc.launch"/>
+
+    <node pkg="image_proc" type="image_proc" name="image_proc" >
+        <remap from="image_raw" to="/camera/image_raw"/>
+        <remap from="camera_info" to="/camera/camera_info"/>
+        <remap from="image_mono" to="/camera/image_mono"/>
+        <remap from="image_color" to="/camera/image_color"/>
+    </node>
+
+</launch>
