@@ -165,6 +165,11 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     vmsg.twist.linear.x = vx;
     vmsg.twist.linear.y = vy;
     vmsg.twist.linear.z = 0;
+
+    vmsg.twist.angular.x = trans_psr;
+    vmsg.twist.angular.y = trans_psr;
+    vmsg.twist.angular.z = trans_psr;
+    
     pub.publish(vmsg);
 
     vx_prev = vx;
