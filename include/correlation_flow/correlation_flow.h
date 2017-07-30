@@ -91,7 +91,6 @@ private:
     cv::Mat cropImg;
     cv::Rect imgROI;
 
-    ArrayXXf  sample;          // sample to be predict
     ArrayXXcf sample_fft;      // key depth cloud
     ArrayXXcf filter_fft;      // key depth cloud
     ArrayXXcf target_fft;      // correlation target
@@ -111,7 +110,8 @@ private:
 
     bool initialized;
     Jeffsan::Timer timer;
-    double ros_time, lowpass_weight;
+    double ros_time;
+    double lowpass_weight;
     Vector3d velocity;
 
     // float max_rotation;

@@ -22,10 +22,10 @@
 
 CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
 {
-    nh.getParam("image_width", width);
-    nh.getParam("image_height", height);
-    nh.getParam("focal_x", focal_x);
-    nh.getParam("focal_y", focal_y);
+    if(!nh.getParam("image_width", width)) ROS_ERROR("Can't get Param image_width");
+    if(!nh.getParam("image_height", height)) ROS_ERROR("Can't get Param image_height");
+    if(!nh.getParam("focal_x", focal_x)) ROS_ERROR("Can't get Param focal_x");
+    if(!nh.getParam("focal_y", focal_y)) ROS_ERROR("Can't get Param focal_y");
 
     velocity = Vector3d::Zero();
     lowpass_weight = 0.10;
@@ -40,8 +40,8 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
 
     initialized = false;
 
-    pub_twist = nh.advertise<geometry_msgs::TwistStamped>("vision_speed/speed_twist", 1000);
-    pub_vector = nh.advertise<geometry_msgs::Vector3Stamped>("vision_speed/speed_vector", 1000);
+    pub_twist = nh.advertise<geometry_msgs::TwistStamped>("vision_speed/speed_twist", 1);
+    pub_vector = nh.advertise<geometry_msgs::Vector3Stamped>("vision_speed/speed_vector", 1);
 }
 
 
@@ -54,18 +54,16 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     cropImg = image(imgROI);
     cropImg.convertTo(cropImg, CV_32FC1);
 
-    sample = Eigen::Map<ArrayXXf>(&cropImg.at<float>(0,0), width, height)/255.0;
-    sample_fft = fft(sample);
+    sample_fft = fft(Eigen::Map<ArrayXXf>(&cropImg.at<float>(0,0), width, height)/255.0);
 
     if (initialized == false)
     {   
-        train = sample;
         train_fft = sample_fft;
         kernel = gaussian_kernel();
         filter_fft = target_fft/(kernel + lamda);
         initialized = true;
         ros_time = msg->header.stamp.toSec();
-        printf("initialized.\n");
+        ROS_WARN("initialized.");
         return;
     }
 
@@ -76,25 +74,25 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     float trans_psr = get_psr(output, max_index[0], max_index[1]);
     
     // update filter
-    train = sample;
     train_fft = sample_fft;
     kernel = gaussian_kernel();
     filter_fft = target_fft/(kernel + lamda);
 
-    // veclocity calculation
+    // update ROS TIME
     double dt = msg->header.stamp.toSec() - ros_time;
+    ros_time = msg->header.stamp.toSec();
+    if(dt<1e-5) {ROS_WARN("image msg time stamp is INVALID, set dt=0.03s"); dt=0.03;}
+
+
+    // veclocity calculation
     Vector3d v = Vector3d(-1.0*((max_index[0]-width/2)/dt)/focal_x, -1.0*((max_index[1]-height/2)/dt)/focal_y, 0);
     velocity = lowpass_weight * v + (1-lowpass_weight) * velocity; // low pass filter
     // rotation = (max_indexR[0]-target_dim/2)*rot_resolution;
     // wz = (rotation*M_PI/180.0)/dt;
 
     publish(msg->header);
-
-    ros_time = msg->header.stamp.toSec();
     timer.toc("callback:");
-    ROS_WARN("vx=%f, vy=%f m/s with psr: %f", velocity(0), velocity(1), trans_psr);
-    // ROS_WARN("angle rate is %f degree/s with psr: %f", wz, rot_psr);
-    // ROS_WARN("index, %d scaling factor is %f\n", max_indexS[0], 1-max_level+max_indexS[0]*scale_factor);
+    ROS_WARN("vx=%f, vy=%f, vz=%f m/s with psr: %f", velocity(0), velocity(1), velocity(2), trans_psr);
 }
 
 
@@ -145,7 +143,7 @@ inline ArrayXXcf CorrelationFlow::gaussian_kernel()
 {
     unsigned int N = height * width;
 
-    train_square = train.square().abs().sum();
+    train_square = train_fft.square().abs().sum()/N; // Parseval's Theorem
 
     float xx = train_square;
 
@@ -167,7 +165,7 @@ inline ArrayXXcf CorrelationFlow::gaussian_kernel(const ArrayXXcf& xf)
 {
     unsigned int N = height * width;
 
-    float xx = ifft(xf).square().abs().sum();
+    float xx = xf.square().abs().sum()/N; // Parseval's Theorem
 
     float yy = train_square;
     
