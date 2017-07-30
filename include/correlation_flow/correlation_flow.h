@@ -56,13 +56,7 @@ private:
 
     inline ArrayXXcf gaussian_kernel(const ArrayXXcf&);
 
-    // inline void rotation_base(const cv::Mat&);
-
-    // inline ArrayXXcf rotation_kernel(const ArrayXXf&);
-
-    // inline void scale_base(const cv::Mat&);
-
-    // inline ArrayXXcf scale_kernel(const ArrayXXf&);
+    inline ArrayXXf log_polar(const cv::Mat);
 
     inline float get_psr(const ArrayXXf&, ArrayXXf::Index, ArrayXXf::Index);
 
@@ -88,9 +82,8 @@ private:
 
     cv::Mat image;
     cv::Mat sample_cv;
-    cv::Mat cropImg;
-    cv::Rect imgROI;
-
+    
+    ArrayXXf  sample;
     ArrayXXcf sample_fft;      // key depth cloud
     ArrayXXcf filter_fft;      // key depth cloud
     ArrayXXcf target_fft;      // correlation target
@@ -111,31 +104,7 @@ private:
     bool initialized;
     Jeffsan::Timer timer;
     double ros_time;
-    double lowpass_weight;
+    float lowpass_weight;
     Vector3d velocity;
-
-    // float max_rotation;
-    // float rot_resolution;
-    // int target_dim;
-    // ArrayXXcf target_rot_fft;
-    // ArrayXXcf filter_rot_fft;
-    // ArrayXXcf kernel_rot;
-    // ArrayXXf  basis;
-    // std::vector<ArrayXXf> rot_base;
-    // ArrayXXf output_rot;
-    // ArrayXXf::Index max_indexR[2];
-    // float max_responseR;
-
-    // float max_level;
-    // float scale_factor;
-    // int sca_target_dim;
-    // ArrayXXcf target_sca_fft;
-    // ArrayXXcf filter_sca_fft;
-    // ArrayXXcf kernel_sca;
-    // ArrayXXf  basis_s;
-    // std::vector<ArrayXXf> sca_base;
-    // ArrayXXf output_sca;
-    // ArrayXXf::Index max_indexS[2];
-    // float max_responseS; 
 };
 #endif

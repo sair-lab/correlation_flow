@@ -48,13 +48,13 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
 void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
 {
     timer.tic();
+    image = cv_bridge::toCvShare(msg, "mono8")->image;
+    image(cv::Rect((image.cols-width)/2, (image.rows-height)/2, width, height)).convertTo(sample_cv, CV_32FC1, 1/255.0);
+    
+    sample = Eigen::Map<ArrayXXf>(&sample_cv.at<float>(0,0), width, height);
 
-    image = cv_bridge::toCvCopy(msg, "mono8")->image;
-    imgROI = cv::Rect((image.cols-width)/2, (image.rows-height)/2, width, height);
-    cropImg = image(imgROI);
-    cropImg.convertTo(cropImg, CV_32FC1);
-
-    sample_fft = fft(Eigen::Map<ArrayXXf>(&cropImg.at<float>(0,0), width, height)/255.0);
+    // ArrayXXf lp= log_polar(sample_cv);
+    sample_fft = fft(sample);
 
     if (initialized == false)
     {   
@@ -179,6 +179,22 @@ inline ArrayXXcf CorrelationFlow::gaussian_kernel(const ArrayXXcf& xf)
 }
 
 
+inline ArrayXXf CorrelationFlow::log_polar(const cv::Mat img)
+{
+    cv::Mat log_polar_img;
+
+    cv::Point2f center((float)img.cols/2, (float)img.rows/2);
+
+    double radius = (double)img.rows / 2;
+
+    double M = (double)img.cols / log(radius);
+
+    cv::logPolar(img, log_polar_img, center, M, cv::INTER_LINEAR + cv::WARP_FILL_OUTLIERS);
+
+    return Eigen::Map<ArrayXXf>(&log_polar_img.at<float>(0,0), img.cols, img.rows);
+}
+
+
 inline float CorrelationFlow::get_psr(const ArrayXXf& output, ArrayXXf::Index x, ArrayXXf::Index y)
 {
     float max_output = output(x, y);
@@ -204,79 +220,3 @@ inline float CorrelationFlow::get_psr(const ArrayXXf& output, ArrayXXf::Index x,
 //         <<0<<endl;
 //     file.close();
 // }
-
-// inline void CorrelationFlow::rotation_base(const cv::Mat& img)
-// {
-//     rot_base.clear();
-//     rot_base.push_back(sample);
-//     cv::Mat rot_mat(2, 3, CV_32FC1);
-//     cv::Mat img_rot;
-//     double angle;
-
-//     for (int i=1; i<target_dim; i++)
-//     {
-//         angle = i*rot_resolution;
-//         rot_mat = cv::getRotationMatrix2D(cv::Point(img.cols/2, img.rows/2), angle, 1.0);
-//         cv::warpAffine(img, img_rot, rot_mat, img.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT, 127);
-//         img_rot = img_rot(imgROI);
-//         img_rot.convertTo(img_rot, CV_32FC1);
-//         basis = Eigen::Map<ArrayXXf>(&img_rot.at<float>(0,0), width, height)/255.0;
-//         rot_base.push_back(basis);
-//     }
-// }
-
-
-// inline ArrayXXcf CorrelationFlow::rotation_kernel(const ArrayXXf& arr0)
-// {
-//     unsigned int N = height * width;
-    
-//     ArrayXXf ker = ArrayXXf::Zero(target_dim, 1);
-
-//     for(int i=0; i<target_dim; i++)
-//     {
-//         float diff_square = (arr0 - rot_base.at(i)).square().abs().sum()/N/N;
-
-//         ker(i, 0) = exp(-1/(sigma*sigma)*diff_square);
-//     }
-    
-//     return fft(ker);
-// }
-
-
-// inline void CorrelationFlow::scale_base(const cv::Mat& imgs)
-// {
-//     sca_base.clear();
-//     cv::Mat sca_mat(2, 3, CV_32FC1);
-//     cv::Mat img_scale;
-
-//     for (int i = 0; i<sca_target_dim; i++)
-//     {
-//         sca_mat = cv::getRotationMatrix2D(cv::Point(imgs.cols/2, imgs.rows/2), 0, 1-max_level + i*scale_factor);
-//         cv::warpAffine(imgs, img_scale, sca_mat, imgs.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT, 127);
-//         img_scale = img_scale(imgROI);
-//         img_scale.convertTo(img_scale, CV_32FC1);
-//         basis_s = Eigen::Map<ArrayXXf>(&img_scale.at<float>(0,0), width, height)/255.0;
-//         sca_base.push_back(basis_s);
-//     }
-// }
-
-
-// inline ArrayXXcf CorrelationFlow::scale_kernel(const ArrayXXf& arr1)
-// {
-//     unsigned int N = height * width;
-    
-//     ArrayXXf ker = ArrayXXf::Zero(sca_target_dim, 1);
-
-//     for(int i=0; i<sca_target_dim; i++)
-//     {
-
-//         float diff_square = (arr1 - sca_base.at(i)).square().abs().sum()/N/N;
-
-//         ker(i, 0) = exp(-1/(sigma*sigma)*diff_square);
-
-//     }
-
-//     return fft(ker);
-// }
-
-
