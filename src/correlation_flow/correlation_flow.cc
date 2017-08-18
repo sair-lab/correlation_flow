@@ -182,6 +182,9 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     timer.toc("callback:");
 
     ROS_WARN("fx=%f, fy=%f m/s with psr: %f", vx, vy, trans_psr);
+
+    if(isnan(vx))
+        exit(-1);
     // ROS_WARN("angle rate is %f degree/s with psr: %f", wz, rot_psr);
     // ROS_WARN("index, %d scaling factor is %f\n", max_indexS[0], 1-max_level+max_indexS[0]*scale_factor);
 }
