@@ -56,6 +56,10 @@ private:
 
     inline ArrayXXcf gaussian_kernel(const ArrayXXcf&);
 
+    inline ArrayXXcf kernel_lp();
+
+    inline ArrayXXcf kernel_lp(const ArrayXXcf&);
+
     inline ArrayXXf log_polar(const cv::Mat);
 
     inline float get_psr(const ArrayXXf&, ArrayXXf::Index, ArrayXXf::Index);
@@ -63,6 +67,10 @@ private:
     // inline void save_file(geometry_msgs::TwistStamped, string);
 
     inline void publish(const std_msgs::Header);
+
+    inline void compute_trans(const ArrayXXf&);
+
+    inline void compute_rs(const ArrayXXf&);
 
 
 private:
@@ -77,26 +85,34 @@ private:
     fftwf_plan fft_plan;
 
     float max_response;
+    float max_response_rs;
     float lamda;
     ArrayXXf::Index max_index[2];// index of max value
+    ArrayXXf::Index max_index_rs[2]; //index for rotation/scale
 
     cv::Mat image;
     cv::Mat sample_cv;
     
     ArrayXXf  sample;
+    ArrayXXf  sample_lp;
     ArrayXXcf sample_fft;      // key depth cloud
     ArrayXXcf filter_fft;      // key depth cloud
+    ArrayXXcf filter_fft_rs;
     ArrayXXcf target_fft;      // correlation target
     ArrayXXf  output;          // correlation output
+    ArrayXXf  output_rs;
     
-    ArrayXXf  train;
     ArrayXXcf train_fft;
     ArrayXXcf train_fft_conj;
 
+    ArrayXXcf train_lp_fft;
+    ArrayXXcf train_lp_fft_conj;
+
     float train_square;
+    float train_lp_square;
+
     float sigma;
     ArrayXXcf kernel;
-    ArrayXXcf sample_fft_conj;
     ArrayXXcf xyf;
     ArrayXXf  xy;
     ArrayXXf  xxyy;
@@ -106,5 +122,6 @@ private:
     double ros_time;
     float lowpass_weight;
     Vector3d velocity;
+    float yaw_rate;
 };
 #endif

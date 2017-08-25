@@ -37,6 +37,7 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     target(width/2, height/2) = 1;
     target_fft = fft(target);
     filter_fft = fft(ArrayXXf::Zero(width, height));
+    filter_fft_rs = fft(ArrayXXf::Zero(width, height));
 
     initialized = false;
 
@@ -52,45 +53,62 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     image(cv::Rect((image.cols-width)/2, (image.rows-height)/2, width, height)).convertTo(sample_cv, CV_32FC1, 1/255.0);
     
     sample = Eigen::Map<ArrayXXf>(&sample_cv.at<float>(0,0), width, height);
-
-    // ArrayXXf lp= log_polar(sample_cv);
-    sample_fft = fft(sample);
+    
+    sample_lp = log_polar(sample_cv);
 
     if (initialized == false)
     {   
-        train_fft = sample_fft;
+        train_fft = fft(sample);
         kernel = gaussian_kernel();
         filter_fft = target_fft/(kernel + lamda);
+
+        train_lp_fft = fft(sample_lp);
+        kernel = kernel_lp();
+        filter_fft_rs = target_fft/(kernel + lamda);
+
         initialized = true;
         ros_time = msg->header.stamp.toSec();
         ROS_WARN("initialized.");
         return;
     }
 
-    // motion of current frame
-    kernel = gaussian_kernel(sample_fft);
-    output = ifft(filter_fft*kernel);
-    max_response = output.maxCoeff(&(max_index[0]), &(max_index[1]));
-    float trans_psr = get_psr(output, max_index[0], max_index[1]);
+    // // motion of current frame
+    // kernel = gaussian_kernel(sample_fft);
+    // output = ifft(filter_fft*kernel);
+    // max_response = output.maxCoeff(&(max_index[0]), &(max_index[1]));
+    // float trans_psr = get_psr(output, max_index[0], max_index[1]);
     
-    // update filter
-    train_fft = sample_fft;
-    kernel = gaussian_kernel();
-    filter_fft = target_fft/(kernel + lamda);
+    // // update filter
+    // train_fft = sample_fft;
+    // kernel = gaussian_kernel();
+    // filter_fft = target_fft/(kernel + lamda);
+
+    compute_trans(sample);
+    compute_rs(sample_lp);
 
     // update ROS TIME
     double dt = msg->header.stamp.toSec() - ros_time;
     ros_time = msg->header.stamp.toSec();
     if(dt<1e-5) {ROS_WARN("image msg time stamp is INVALID, set dt=0.03s"); dt=0.03;}
 
-
     // veclocity calculation
-    Vector3d v = Vector3d(-1.0*((max_index[0]-width/2)/dt)/focal_x, -1.0*((max_index[1]-height/2)/dt)/focal_y, 0);
-    velocity = lowpass_weight * v + (1-lowpass_weight) * velocity; // low pass filter
-    // rotation = (max_indexR[0]-target_dim/2)*rot_resolution;
-    // wz = (rotation*M_PI/180.0)/dt;
+    float vx = -1.0*((max_index[0]-width/2)/dt)/focal_x;
+    float vy = -1.0*((max_index[1]-height/2)/dt)/focal_y;
 
+    double radius = (double)height / 2;
+    double M = (double)width / log(radius);
+    float scale = exp((max_index_rs[0]-width/2)/M);
+    float vz = (scale-1)/dt;
+
+    float rotation = (max_index_rs[1]-height/2)*360/height;
+    yaw_rate = (rotation*M_PI/180.0)/dt;
+
+    Vector3d v = Vector3d(vx, vy, vz);
+    velocity = lowpass_weight * v + (1-lowpass_weight) * velocity; // low pass filter
+
+    float trans_psr = get_psr(output, max_index[0], max_index[1]);
     publish(msg->header);
+
     timer.toc("callback:");
     ROS_WARN("vx=%f, vy=%f, vz=%f m/s with psr: %f", velocity(0), velocity(1), velocity(2), trans_psr);
 }
@@ -100,6 +118,7 @@ inline void CorrelationFlow::publish(const std_msgs::Header header)
 {
     geometry_msgs::TwistStamped twist;
     twist.header.stamp = header.stamp;
+    twist.twist.angular.z = yaw_rate;
     tf::vectorEigenToMsg(velocity, twist.twist.linear);
     pub_twist.publish(twist);
 
@@ -179,6 +198,46 @@ inline ArrayXXcf CorrelationFlow::gaussian_kernel(const ArrayXXcf& xf)
 }
 
 
+inline ArrayXXcf CorrelationFlow::kernel_lp()
+{
+    unsigned int N = height * width;
+
+    train_lp_square = train_lp_fft.square().abs().sum()/N; // Parseval's Theorem
+
+    float xx = train_lp_square;
+
+    float yy = train_lp_square;
+
+    train_lp_fft_conj = train_lp_fft.conjugate();
+    
+    xyf = train_lp_fft * train_lp_fft_conj;
+    
+    xy = ifft(xyf);
+
+    xxyy = (xx+yy-2*xy)/N;
+
+    return fft((-1/(sigma*sigma)*xxyy).exp());
+}
+
+
+inline ArrayXXcf CorrelationFlow::kernel_lp(const ArrayXXcf& xf)
+{
+    unsigned int N = height * width;
+
+    float xx = xf.square().abs().sum()/N; // Parseval's Theorem
+
+    float yy = train_lp_square;
+    
+    xyf = xf * train_lp_fft_conj;
+    
+    xy = ifft(xyf);
+
+    xxyy = (xx+yy-2*xy)/N;
+
+    return fft((-1/(sigma*sigma)*xxyy).exp());
+}
+
+
 inline ArrayXXf CorrelationFlow::log_polar(const cv::Mat img)
 {
     cv::Mat log_polar_img;
@@ -197,15 +256,44 @@ inline ArrayXXf CorrelationFlow::log_polar(const cv::Mat img)
 
 inline float CorrelationFlow::get_psr(const ArrayXXf& output, ArrayXXf::Index x, ArrayXXf::Index y)
 {
-    float max_output = output(x, y);
-
-    float side_lobe_mean = (output.sum()-max_output)/(output.size()-1);
+    float side_lobe_mean = (output.sum()-max_response)/(output.size()-1);
 
     float std  = sqrt((output-side_lobe_mean).square().mean());
 
     return (max_response - side_lobe_mean)/std;
 }
 
+
+inline void CorrelationFlow::compute_trans(const ArrayXXf& xf)
+{
+    sample_fft = fft(xf);
+
+    // correlation response of current frame
+    kernel = gaussian_kernel(sample_fft);
+    output = ifft(filter_fft*kernel);
+    max_response = output.maxCoeff(&(max_index[0]), &(max_index[1]));
+    
+    // update filter
+    train_fft = sample_fft;
+    kernel = gaussian_kernel();
+    filter_fft = target_fft/(kernel + lamda);
+}
+
+
+inline void CorrelationFlow::compute_rs(const ArrayXXf& xf)
+{
+    sample_fft = fft(xf);
+
+    // correlation response of current frame
+    kernel = kernel_lp(sample_fft);
+    output_rs = ifft(filter_fft_rs*kernel);
+    max_response_rs = output_rs.maxCoeff(&(max_index_rs[0]), &(max_index_rs[1]));
+    
+    // update filter
+    train_lp_fft = sample_fft;
+    kernel = kernel_lp();
+    filter_fft_rs = target_fft/(kernel + lamda);
+}
 
 // inline void CorrelationFlow::save_file(geometry_msgs::TwistStamped twist, string filename)
 // {
