@@ -100,17 +100,19 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     float scale = exp((max_index_rs[0]-width/2)/M);
     float vz = (scale-1)/dt;
 
-    float rotation = (max_index_rs[1]-height/2)*360/height;
+    float rotation = (max_index_rs[1]-height/2)*360.0/height;
     yaw_rate = (rotation*M_PI/180.0)/dt;
 
     Vector3d v = Vector3d(vx, vy, vz);
     velocity = lowpass_weight * v + (1-lowpass_weight) * velocity; // low pass filter
 
     float trans_psr = get_psr(output, max_index[0], max_index[1]);
+    float rs_psr = get_psr(output_rs, max_index_rs[0], max_index_rs[1]);
     publish(msg->header);
 
     timer.toc("callback:");
     ROS_WARN("vx=%f, vy=%f, vz=%f m/s with psr: %f", velocity(0), velocity(1), velocity(2), trans_psr);
+    ROS_WARN("scale factor=%f, rotation angle=%f deg with psr: %f", scale, rotation, rs_psr);
 }
 
 
