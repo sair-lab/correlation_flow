@@ -8,11 +8,11 @@ import numpy as np
 import scipy
 
 rospy.init_node('VideoPublisher',anonymous=False)
-VideoRaw = rospy.Publisher('/camera/rgb/image_color', Image, queue_size=10)
+VideoRaw = rospy.Publisher('/camera/image_raw', Image, queue_size=10)
 rate = rospy.Rate(50)
 
 
-
+"""
 #publish images from a camera
 #----------------------------
 cam = cv2.VideoCapture(0)
@@ -33,7 +33,8 @@ cam.release()
 """
 #publish rotated images from a single image
 #------------------------------------------
-img = cv2.imread('/home/zh/catkin_ws/src/correlation_flow/script/panda3.jpg')
+img = cv2.imread('/home/jeffsan/drones/src/correlation_flow/script/panda3.jpg')
+dst = img
 height, width = img.shape[:2]
 #img = cv2.resize(img, (360, 240))
 x, y = scipy.mgrid[-height/2: height/2 , -width/2: width/2 ]
@@ -48,14 +49,15 @@ while not rospy.is_shutdown():
 #        img = cv2.warpAffine(img,M,(360,240))
 #        msg_frame = CvBridge().cv2_to_imgmsg(img, "bgr8")
 
-    M = cv2.getRotationMatrix2D((width/2,height/2), 0*(i+1), 1+0.001*i)
-    dst = cv2.warpAffine(img,M,(width,height),flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT,  borderValue=(127, 127, 127))
-    dst1 = np.float32(img)
+    M = cv2.getRotationMatrix2D((width/2,height/2), i, 1+0.02*i)
+    dst = cv2.warpAffine(dst,M,(width,height),flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT,  borderValue=(127, 127, 127))
+    # dst1 = np.float32(img)
     # dst1[:,:,0] *= g 
     # dst1[:,:,1] *= g 
     # dst1[:,:,2] *= g 
     # img = np.uint8(dst)
     msg_frame = CvBridge().cv2_to_imgmsg(dst, "bgr8")
+    msg_frame.header.stamp=rospy.Duration(0.03*i)
 
     VideoRaw.publish(msg_frame)
     cv2.imshow('frame', dst)
@@ -64,7 +66,7 @@ while not rospy.is_shutdown():
         break
     rate.sleep()
 #-------------------------------------------
-"""
+
 
 cv2.destroyAllWindows()
 

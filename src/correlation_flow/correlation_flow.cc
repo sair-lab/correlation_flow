@@ -94,7 +94,7 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
     timer.toc("callback:");
 
     ROS_WARN("vx=%+.4f, vy=%+.4f, vz=%+.7f m/s, wz=%+.7f degree/s with psr: %.1f rs_psr: %.1f", 
-        velocity(0), velocity(1), velocity(2), yaw_rate*180/M_PI, trans_psr, rs_psr);
+        velocity(0), velocity(1), velocity(2), yaw_rate, trans_psr, rs_psr);
 }
 
 
@@ -273,6 +273,9 @@ inline void CorrelationFlow::compute_rs(const ArrayXXf& xf)
     output_rs = ifft(filter_fft_rs*kernel);
     max_response_rs = output_rs.maxCoeff(&(max_index_rs[0]), &(max_index_rs[1]));
     
+    // printf("%d %d\n", max_index_rs[0], max_index_rs[1]);
+    // show_image(output_rs/max_response_rs,height,width,"rs_output");
+    // cv::waitKey(1);
     // update filter
     train_lp_fft = sample_fft;
     kernel = kernel_lp();
@@ -296,6 +299,9 @@ inline void CorrelationFlow::compute_velocity(double dt)
 
     float rotation = (max_index_rs[1]-height/2)*360.0/height;
     yaw_rate = (rotation*M_PI/180.0)/dt;
+
+    // printf("scale=%f\n",scale);
+    // printf("rotation=%f\n",rotation);
 
     Vector3d v = Vector3d(vx, vy, vz);
     velocity = lowpass_weight * v + (1-lowpass_weight) * velocity; // low pass filter

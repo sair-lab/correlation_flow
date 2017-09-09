@@ -12,7 +12,7 @@
 
     	<param name="lowpass_weight" type="double" value="0.1"/>
     	<param name="sigma" type="double" value="0.2"/>
-    	<param name="lamda" type="double" value="0.1"/>
+    	<param name="lamda" type="double" value="0.001"/>
   	</node>
 
 <!--
