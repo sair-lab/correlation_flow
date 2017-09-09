@@ -64,13 +64,13 @@ private:
 
     inline float get_psr(const ArrayXXf&, ArrayXXf::Index, ArrayXXf::Index);
 
-    // inline void save_file(geometry_msgs::TwistStamped, string);
-
     inline void publish(const std_msgs::Header);
 
     inline void compute_trans(const ArrayXXf&);
 
     inline void compute_rs(const ArrayXXf&);
+
+    inline void compute_velocity(double);
 
 
 private:

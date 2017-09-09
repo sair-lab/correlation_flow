@@ -29,9 +29,11 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
 
     velocity = Vector3d::Zero();
     lowpass_weight = 0.10;
+    if(nh.getParam("lowpass_weight", lowpass_weight))
+        ROS_WARN("Get lowpass_weight:%f", lowpass_weight);
 
-    lamda = 0.1;
-    sigma = 0.2;
+    lamda = 0.1;if(nh.getParam("lamda", lamda)) ROS_WARN("Get lamda:%f", lamda);
+    sigma = 0.2;if(nh.getParam("sigma", sigma)) ROS_WARN("Get sigma:%f", sigma);
 
     ArrayXXf target = ArrayXXf::Zero(width, height);
     target(width/2, height/2) = 1;
@@ -72,47 +74,27 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
         return;
     }
 
-    // // motion of current frame
-    // kernel = gaussian_kernel(sample_fft);
-    // output = ifft(filter_fft*kernel);
-    // max_response = output.maxCoeff(&(max_index[0]), &(max_index[1]));
-    // float trans_psr = get_psr(output, max_index[0], max_index[1]);
-    
-    // // update filter
-    // train_fft = sample_fft;
-    // kernel = gaussian_kernel();
-    // filter_fft = target_fft/(kernel + lamda);
-
-    compute_trans(sample);
-    compute_rs(sample_lp);
-
     // update ROS TIME
     double dt = msg->header.stamp.toSec() - ros_time;
+
     ros_time = msg->header.stamp.toSec();
-    if(dt<1e-5) {ROS_WARN("image msg time stamp is INVALID, set dt=0.03s"); dt=0.03;}
 
-    // veclocity calculation
-    float vx = -1.0*((max_index[0]-width/2)/dt)/focal_x;
-    float vy = -1.0*((max_index[1]-height/2)/dt)/focal_y;
+    compute_trans(sample);
 
-    double radius = (double)height / 2;
-    double M = (double)width / log(radius);
-    float scale = exp((max_index_rs[0]-width/2)/M);
-    float vz = (scale-1)/dt;
+    compute_rs(sample_lp);
 
-    float rotation = (max_index_rs[1]-height/2)*360.0/height;
-    yaw_rate = (rotation*M_PI/180.0)/dt;
-
-    Vector3d v = Vector3d(vx, vy, vz);
-    velocity = lowpass_weight * v + (1-lowpass_weight) * velocity; // low pass filter
+    compute_velocity(dt);
 
     float trans_psr = get_psr(output, max_index[0], max_index[1]);
+
     float rs_psr = get_psr(output_rs, max_index_rs[0], max_index_rs[1]);
+
     publish(msg->header);
 
     timer.toc("callback:");
-    ROS_WARN("vx=%f, vy=%f, vz=%f m/s with psr: %f", velocity(0), velocity(1), velocity(2), trans_psr);
-    ROS_WARN("scale factor=%f, rotation angle=%f deg with psr: %f", scale, rotation, rs_psr);
+
+    ROS_WARN("vx=%+.4f, vy=%+.4f, vz=%+.7f m/s, wz=%+.7f degree/s with psr: %.1f rs_psr: %.1f", 
+        velocity(0), velocity(1), velocity(2), yaw_rate*180/M_PI, trans_psr, rs_psr);
 }
 
 
@@ -297,16 +279,24 @@ inline void CorrelationFlow::compute_rs(const ArrayXXf& xf)
     filter_fft_rs = target_fft/(kernel + lamda);
 }
 
-// inline void CorrelationFlow::save_file(geometry_msgs::TwistStamped twist, string filename)
-// {
-//     file.open(filename.c_str(), ios::app);
-//     file<<boost::format("%.9f") % (twist.header.stamp.toSec())<<" "
-//         <<twist.twist.linear.x<<" "
-//         <<twist.twist.linear.y<<" "
-//         <<0<<" "
-//         <<0<<" "
-//         <<0<<" "
-//         <<0<<" "
-//         <<0<<endl;
-//     file.close();
-// }
+
+inline void CorrelationFlow::compute_velocity(double dt)
+{
+
+    if(dt<1e-5) {ROS_WARN("image msg time stamp is INVALID, set dt=0.03s"); dt=0.03;}
+
+    // veclocity calculation
+    float vx = -1.0*((max_index[0]-width/2)/dt)/focal_x;
+    float vy = -1.0*((max_index[1]-height/2)/dt)/focal_y;
+
+    double radius = (double)height / 2;
+    double M = (double)width / log(radius);
+    float scale = exp((max_index_rs[0]-width/2)/M);
+    float vz = (scale-1)/dt;
+
+    float rotation = (max_index_rs[1]-height/2)*360.0/height;
+    yaw_rate = (rotation*M_PI/180.0)/dt;
+
+    Vector3d v = Vector3d(vx, vy, vz);
+    velocity = lowpass_weight * v + (1-lowpass_weight) * velocity; // low pass filter
+}
