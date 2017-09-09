@@ -32,8 +32,11 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     if(nh.getParam("lowpass_weight", lowpass_weight))
         ROS_WARN("Get lowpass_weight:%f", lowpass_weight);
 
-    lamda = 0.1;if(nh.getParam("lamda", lamda)) ROS_WARN("Get lamda:%f", lamda);
-    sigma = 0.2;if(nh.getParam("sigma", sigma)) ROS_WARN("Get sigma:%f", sigma);
+    lamda = 0.1;if(nh.getParam("trans/lamda", lamda)) ROS_WARN("Get trans/lamda:%f", lamda);
+    sigma = 0.2;if(nh.getParam("trans/sigma", sigma)) ROS_WARN("Get trans/sigma:%f", sigma);
+
+    rs_lamda = 0.001;if(nh.getParam("rs/lamda", rs_lamda)) ROS_WARN("Get rs/lamda:%f", rs_lamda);
+    rs_sigma = 0.2;if(nh.getParam("rs/sigma", rs_sigma)) ROS_WARN("Get rs/sigma:%f", rs_sigma);
 
     ArrayXXf target = ArrayXXf::Zero(width, height);
     target(width/2, height/2) = 1;
@@ -66,7 +69,7 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
 
         train_lp_fft = fft(sample_lp);
         kernel = kernel_lp();
-        filter_fft_rs = target_fft/(kernel + lamda);
+        filter_fft_rs = target_fft/(kernel + rs_lamda);
 
         initialized = true;
         ros_time = msg->header.stamp.toSec();
@@ -200,7 +203,7 @@ inline ArrayXXcf CorrelationFlow::kernel_lp()
 
     xxyy = (xx+yy-2*xy)/N;
 
-    return fft((-1/(sigma*sigma)*xxyy).exp());
+    return fft((-1/(rs_sigma*rs_sigma)*xxyy).exp());
 }
 
 
@@ -218,7 +221,7 @@ inline ArrayXXcf CorrelationFlow::kernel_lp(const ArrayXXcf& xf)
 
     xxyy = (xx+yy-2*xy)/N;
 
-    return fft((-1/(sigma*sigma)*xxyy).exp());
+    return fft((-1/(rs_sigma*rs_sigma)*xxyy).exp());
 }
 
 
@@ -279,7 +282,7 @@ inline void CorrelationFlow::compute_rs(const ArrayXXf& xf)
     // update filter
     train_lp_fft = sample_fft;
     kernel = kernel_lp();
-    filter_fft_rs = target_fft/(kernel + lamda);
+    filter_fft_rs = target_fft/(kernel + rs_lamda);
 }
 
 

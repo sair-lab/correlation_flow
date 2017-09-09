@@ -86,7 +86,7 @@ private:
 
     float max_response;
     float max_response_rs;
-    float lamda;
+    float lamda, rs_lamda;
     ArrayXXf::Index max_index[2];// index of max value
     ArrayXXf::Index max_index_rs[2]; //index for rotation/scale
 
@@ -111,7 +111,7 @@ private:
     float train_square;
     float train_lp_square;
 
-    float sigma;
+    float sigma, rs_sigma;
     ArrayXXcf kernel;
     ArrayXXcf xyf;
     ArrayXXf  xy;

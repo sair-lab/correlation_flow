@@ -11,8 +11,12 @@
     	<param name="focal_y" type="double" value="531.78"/>
 
     	<param name="lowpass_weight" type="double" value="0.1"/>
-    	<param name="sigma" type="double" value="0.2"/>
-    	<param name="lamda" type="double" value="0.001"/>
+    	
+    	<param name="trans/sigma" type="double" value="0.2"/>
+    	<param name="trans/lamda" type="double" value="0.1"/>
+
+    	<param name="rs/sigma" type="double" value="0.2"/>
+    	<param name="rs/lamda" type="double" value="0.001"/>
   	</node>
 
 <!--
