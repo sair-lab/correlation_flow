@@ -123,5 +123,7 @@ private:
     float lowpass_weight;
     Vector3d velocity;
     float yaw_rate;
+
+    bool rs_switch;
 };
 #endif

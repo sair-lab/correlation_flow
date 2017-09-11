@@ -3,23 +3,25 @@
 
     <node pkg="correlation_flow" type="correlation_flow_node" name="correlation_flow_node" output="screen">
 
-    	<remap from="~/camera/image" to="/camera/image_raw"/>
+        <remap from="~/camera/image" to="/camera/image_raw"/>
 
-    	<param name="image_width" type="int" value="320"/>
-    	<param name="image_height" type="int" value="240"/>
-    	<param name="focal_x" type="double" value="531.20"/>
-    	<param name="focal_y" type="double" value="531.78"/>
+        <param name="image_width" type="int" value="320"/>
+        <param name="image_height" type="int" value="240"/>
+        <param name="focal_x" type="double" value="531.20"/>
+        <param name="focal_y" type="double" value="531.78"/>
 
-    	<param name="lowpass_weight" type="double" value="0.1"/>
-    	
-    	<param name="trans/sigma" type="double" value="0.2"/>
-    	<param name="trans/lamda" type="double" value="0.1"/>
+        <param name="lowpass_weight" type="double" value="0.1"/>
+        
+        <param name="trans/sigma" type="double" value="0.2"/>
+        <param name="trans/lamda" type="double" value="0.1"/>
 
-    	<param name="rs/sigma" type="double" value="0.2"/>
-    	<param name="rs/lamda" type="double" value="0.001"/>
-  	</node>
+        <param name="rs/sigma" type="double" value="0.2"/>
+        <param name="rs/lamda" type="double" value="0.001"/>
+
+        <param name="rs_switch" type="bool" value="false"/>
+    </node>
 
 <!--
-  	<node pkg="correlation_flow" type="body2ned.py" name="frame_transform" />
+    <node pkg="correlation_flow" type="body2ned.py" name="frame_transform" />
 -->
 </launch>

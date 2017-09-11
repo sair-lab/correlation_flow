@@ -38,6 +38,11 @@ CorrelationFlow::CorrelationFlow(ros::NodeHandle nh):nh(nh)
     rs_lamda = 0.001;if(nh.getParam("rs/lamda", rs_lamda)) ROS_WARN("Get rs/lamda:%f", rs_lamda);
     rs_sigma = 0.2;if(nh.getParam("rs/sigma", rs_sigma)) ROS_WARN("Get rs/sigma:%f", rs_sigma);
 
+    yaw_rate = 0;
+    rs_switch = true;
+    if(nh.getParam("rs_switch", rs_switch))
+        ROS_WARN("calculate rotation and scale: %s", rs_switch?"true":"false");    
+
     ArrayXXf target = ArrayXXf::Zero(width, height);
     target(width/2, height/2) = 1;
     target_fft = fft(target);
@@ -84,13 +89,18 @@ void CorrelationFlow::callback(const sensor_msgs::ImageConstPtr& msg)
 
     compute_trans(sample);
 
-    compute_rs(sample_lp);
+    if (rs_switch == true)
+        compute_rs(sample_lp);
 
     compute_velocity(dt);
 
     float trans_psr = get_psr(output, max_index[0], max_index[1]);
 
-    float rs_psr = get_psr(output_rs, max_index_rs[0], max_index_rs[1]);
+    float rs_psr;
+    if (rs_switch == true)
+        rs_psr = get_psr(output_rs, max_index_rs[0], max_index_rs[1]);
+    else
+        rs_psr = 0;
 
     publish(msg->header);
 
@@ -295,14 +305,18 @@ inline void CorrelationFlow::compute_velocity(double dt)
     float vx = -1.0*((max_index[0]-width/2)/dt)/focal_x;
     float vy = -1.0*((max_index[1]-height/2)/dt)/focal_y;
 
-    double radius = (double)height / 2;
-    double M = (double)width / log(radius);
-    float scale = exp((max_index_rs[0]-width/2)/M);
-    float vz = (scale-1)/dt;
+    float vz = 0;
+    if (rs_switch == true)
+    {
+        double radius = (double)height / 2;
+        double M = (double)width / log(radius);
+        float scale = exp((max_index_rs[0]-width/2)/M);
+        vz = (scale-1)/dt;
 
-    float rotation = (max_index_rs[1]-height/2)*360.0/height;
-    yaw_rate = (rotation*M_PI/180.0)/dt;
-
+        float rotation = (max_index_rs[1]-height/2)*360.0/height;
+        yaw_rate = (rotation*M_PI/180.0)/dt;
+    }
+    
     // printf("scale=%f\n",scale);
     // printf("rotation=%f\n",rotation);
 
