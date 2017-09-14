@@ -1,6 +1,8 @@
-# correlation_flow
-Correlation Flow: Velocity Estimation in 3-D space $v_x, v_y, v_z, \omega_x$
- 
+# Correlation Flow
+Correlation Flow: Robust Optical Flow using Kernel Cross-Correlators
+```
+    Velocity Estimation in 3-D space $v_x, v_y, v_z, \omega_z$
+```
 # Platform
   Codes have been tested on Ubuntu 16.04 with ROS kinetic.
   
