@@ -1,5 +1,5 @@
 # correlation_flow
-Correlation Flow: Velocity Estimation in 3-D space $V_x, V_y, V_z, \omega_x$
+Correlation Flow: Velocity Estimation in 3-D space $v_x, v_y, v_z, \omega_x$
  
 # Platform
   Codes have been tested on Ubuntu 16.04 with ROS kinetic.
@@ -30,3 +30,10 @@ Correlation Flow: Velocity Estimation in 3-D space $V_x, V_y, V_z, \omega_x$
   	source /opt/intel/bin/compilervars.sh intel64
   	```
   6. Try compile in ROS workspace
+
+# Papers associated with this work:
+#### Chen Wang, Tete Ji, Thien-Minh Nguyen, and Lihua Xie, "Correlation Flow: Robust Optical Flow using Kernel Cross-Correlators"
+
+For more details about kernel cross-correlator, refer to:
+
+https://github.com/wang-chen/correlation_flow/blob/master/doc/kcc.pdf
