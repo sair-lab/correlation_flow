@@ -34,7 +34,7 @@ Correlation Flow: Robust Optical Flow using Kernel Cross-Correlators
   6. Try compile in ROS workspace
 
 # Papers associated with this work:
-#### Chen Wang, Tete Ji, Thien-Minh Nguyen, and Lihua Xie, "Correlation Flow: Robust Optical Flow using Kernel Cross-Correlators"
+#### Chen Wang*, Tete Ji*, Thien-Minh Nguyen, and Lihua Xie, "Correlation Flow: Robust Optical Flow using Kernel Cross-Correlators" (*Chen Wang and Tete Ji are joint first authors).
 
 For more details about kernel cross-correlator, refer to:
 
