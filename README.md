@@ -1,8 +1,8 @@
 # Correlation Flow
 Correlation Flow: Robust Optical Flow using Kernel Cross-Correlators
-```
-    Velocity Estimation in 3-D space $v_x, v_y, v_z, \omega_z$
-```
+
+    	Velocity Estimation in 3-D space $v_x, v_y, v_z, \omega_z$
+
 # Platform
   Codes have been tested on Ubuntu 16.04 with ROS kinetic.
   
@@ -34,8 +34,8 @@ Correlation Flow: Robust Optical Flow using Kernel Cross-Correlators
   6. Try compile in ROS workspace
 
 # Papers associated with this work:
-#### Chen Wang*, Tete Ji*, Thien-Minh Nguyen, and Lihua Xie, "Correlation Flow: Robust Optical Flow using Kernel Cross-Correlators" (*Chen Wang and Tete Ji are joint first authors).
+#### 
 
-For more details about kernel cross-correlator, refer to:
+[Chen Wang](http://wangchen.online) *, Tete Ji *, Thien-Minh Nguyen, and [Lihua Xie](http://www.ntu.edu.sg/home/elhxie/), "Correlation Flow: Robust Optical Flow using Kernel Cross-Correlators", submitted (*Chen Wang and Tete Ji are joint first authors).
 
-https://github.com/wang-chen/correlation_flow/blob/master/doc/kcc.pdf
+[Chen Wang](http://wangchen.online), [Le Zhang](https://sites.google.com/site/zhangleuestc/home), [Lihua Xie](http://www.ntu.edu.sg/home/elhxie/), [Junsong Yuan](http://www.ntu.edu.sg/home/jsyuan/), Kernel Cross-Correlator, In AAAI Conference on Artificial Intelligence (AAAI-18), 2018 ([PDF available here](https://arxiv.org/pdf/1709.05936.pdf))   ([source codes available here](https://github.com/wang-chen/KCC))
