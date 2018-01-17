@@ -39,3 +39,8 @@ Correlation Flow: Robust Optical Flow using Kernel Cross-Correlators
 [Chen Wang](https://wang-chen.github.io) *, Tete Ji *, Thien-Minh Nguyen, and [Lihua Xie](http://www.ntu.edu.sg/home/elhxie/), "Correlation Flow: Robust Optical Flow Using Kernel Cross-Correlators", accepted by IEEE International Conference on Robotics and Automation (ICRA 2018), 2018 (*Chen Wang and Tete Ji are joint first authors).
 
 [Chen Wang](https://wang-chen.github.io), [Le Zhang](https://sites.google.com/site/zhangleuestc/home), [Lihua Xie](http://www.ntu.edu.sg/home/elhxie/), [Junsong Yuan](http://www.ntu.edu.sg/home/jsyuan/), Kernel Cross-Correlator, In AAAI Conference on Artificial Intelligence (AAAI-18), 2018 ([PDF available here](https://arxiv.org/pdf/1709.05936.pdf))   ([source codes available here](https://github.com/wang-chen/KCC))
+
+The following work applys correlation flow to improve the performance of localization accuracy.
+
+Thien-Minh Nguyen, Abdul Hanif Zaini, [Chen Wang](https://wang-chen.github.io) , Kexin Guo, and [Lihua Xie](http://www.ntu.edu.sg/home/elhxie/), "Robust Target-relative Localization with Ultra-Wideband Ranging and Communication", accepted by IEEE International Conference on Robotics and Automation (ICRA 2018), 2018.
+
