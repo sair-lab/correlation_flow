@@ -3,6 +3,10 @@ Correlation Flow: Robust Optical Flow using Kernel Cross-Correlators
 
     	Velocity Estimation in 3-D space $v_x, v_y, v_z, \omega_z$
 
+This repo contains source codes for the following paper, which is accepted by ICRA-18:
+
+[Chen Wang](https://wang-chen.github.io) *, Tete Ji *, Thien-Minh Nguyen, and [Lihua Xie](http://www.ntu.edu.sg/home/elhxie/), "Correlation Flow: Robust Optical Flow Using Kernel Cross-Correlators", IEEE International Conference on Robotics and Automation (ICRA), 2018.
+
 # Platform
   Codes have been tested on Ubuntu 16.04 with ROS kinetic.
   
@@ -33,14 +37,25 @@ Correlation Flow: Robust Optical Flow using Kernel Cross-Correlators
   	```
   6. Try compile in ROS workspace
 
-# Papers associated with this work:
-#### 
-
-[Chen Wang](https://wang-chen.github.io) *, Tete Ji *, Thien-Minh Nguyen, and [Lihua Xie](http://www.ntu.edu.sg/home/elhxie/), "Correlation Flow: Robust Optical Flow Using Kernel Cross-Correlators", accepted by IEEE International Conference on Robotics and Automation (ICRA 2018), 2018 (*Chen Wang and Tete Ji are joint first authors).
+# If this repo is useful for your projects, you may cite it as:
+    
+	@inproceedings{wang2018correlation,
+	  title={{Correlation Flow: Robust Optical Flow using Kernel Cross-Correlators}},
+	  author={Wang, Chen and Ji, Tete and Nguyen, Thien-Minh and Xie, Lihua},
+	  booktitle={International Conference on Robotics and Automation (ICRA)},
+	  year={2018},
+	  organization={IEEE}
+	}
+     
+# Correlation Flow is built on following work: 
 
 [Chen Wang](https://wang-chen.github.io), [Le Zhang](https://sites.google.com/site/zhangleuestc/home), [Lihua Xie](http://www.ntu.edu.sg/home/elhxie/), [Junsong Yuan](http://www.ntu.edu.sg/home/jsyuan/), Kernel Cross-Correlator, In AAAI Conference on Artificial Intelligence (AAAI-18), 2018 ([PDF available here](https://arxiv.org/pdf/1709.05936.pdf))   ([source codes available here](https://github.com/wang-chen/KCC))
 
-The following work applys correlation flow to improve the performance of localization accuracy.
+# Works using Correlation Flow
 
-Thien-Minh Nguyen, Abdul Hanif Zaini, [Chen Wang](https://wang-chen.github.io) , Kexin Guo, and [Lihua Xie](http://www.ntu.edu.sg/home/elhxie/), "Robust Target-relative Localization with Ultra-Wideband Ranging and Communication", accepted by IEEE International Conference on Robotics and Automation (ICRA 2018), 2018. ([Video available here](https://youtu.be/ZkxFDGdB0hQ))
+
+Thien-Minh Nguyen, Abdul Hanif Zaini, [Chen Wang](https://wang-chen.github.io) , Kexin Guo, and [Lihua Xie](http://www.ntu.edu.sg/home/elhxie/), "Robust Target-relative Localization with Ultra-Wideband Ranging and Communication", IEEE International Conference on Robotics and Automation (ICRA 2018), 2018. ([Video available here](https://youtu.be/ZkxFDGdB0hQ))
+
+*The above work applys correlation flow to improve the performance of localization accuracy.
+
 
