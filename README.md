@@ -16,7 +16,9 @@ This repo contains source codes for the following paper, which is accepted by IC
 	sudo apt-get install libfftw3-dev libfftw3-doc
 	```
 
-# Install Intel Math Kernel Library (MKL) （optional）:
+# Install Intel Math Kernel Library (MKL):
+
+	MKL is optional but highly recommended for computational efficiency. It improves the running speed a lot.
 
   1. Download MKL from Intel website
   2. Extract downloaded file 
